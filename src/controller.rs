@@ -48,10 +48,20 @@ pub async fn run(state: State) -> Result<(), ControllerError> {
                     |event| async {
                         match event {
                             Event::Apply(github_repository) => {
-                                apply(github_repository, &api, &use_case).await
+                                let result: Result<Action, ControllerError> =
+                                    match use_case.execute(github_repository).await {
+                                        Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
+                                        Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
+                                    };
+                                result
                             }
                             Event::Cleanup(github_repository) => {
-                                cleanup(github_repository, &api).await
+                                let result: Result<Action, ControllerError> =
+                                    match use_case.execute(github_repository).await {
+                                        Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
+                                        Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
+                                    };
+                                result
                             }
                         }
                     },
@@ -69,21 +79,6 @@ pub async fn run(state: State) -> Result<(), ControllerError> {
         }
     })
     .await;
-
-    // Controller::new(github_repository_api, Config::default().any_semantic())
-    //     .shutdown_on_signal()
-    //     .run(
-    //         reconcile,
-    //         error_policy,
-    //         Arc::new(Context { client, use_case }),
-    //     )
-    //     .for_each(|res| async move {
-    //         match res {
-    //             Ok(o) => log::info!("reconciled {:?}", o),
-    //             Err(e) => log::warn!("reconcile failed: {}", e),
-    //         }
-    //     })
-    //     .await;
 
     Ok(())
 }

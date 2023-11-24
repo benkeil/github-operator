@@ -21,6 +21,9 @@ pub enum ControllerError {
     #[error("IllegalDocument")]
     IllegalDocument,
 
+    #[error("UseCaseError")]
+    UseCaseError,
+
     #[error("CRD is not queryable; {0}. Is the CRD installed?")]
     CrdNotFound(kube::Error),
 }
