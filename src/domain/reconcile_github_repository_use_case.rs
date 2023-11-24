@@ -2,7 +2,6 @@ use crate::domain::model::github_repository::GitHubRepository;
 use crate::domain::port::github_service::GitHubService;
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct ReconcileGitHubRepositoryUseCase {
     github_service: Arc<dyn GitHubService + Send + Sync>,
 }
