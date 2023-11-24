@@ -1,0 +1,7 @@
+apiVersion: platform.benkeil.de/v1alpha1
+kind: GitHubRepository
+metadata:
+  name: test-1
+  namespace: team-a
+spec:
+  slug: benkeil/hydra
