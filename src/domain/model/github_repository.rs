@@ -20,7 +20,19 @@ pub struct GitHubRepositorySpec {
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema)]
 pub struct GitHubRepositoryStatus {
-    pub provisioned: bool,
+    // pub security_and_analysis: Option<SecurityAndAnalysis>,
 }
 
-pub const KIND: &str = "GitHubRepository";
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+pub struct SecurityAndAnalysis {
+    pub secret_scanning: Status,
+    pub secret_scanning_push_protection: Status,
+    pub dependabot_security_updates: Status,
+    pub secret_scanning_validity_checks: Status,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+pub enum Status {
+    Enabled,
+    Disabled,
+}

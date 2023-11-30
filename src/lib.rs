@@ -1,6 +1,8 @@
 use thiserror::Error;
 
+pub mod adapter;
 pub mod domain;
+pub mod extensions;
 
 #[derive(Error, Debug)]
 pub enum ControllerError {

@@ -1,7 +1,20 @@
-#[derive(Clone, Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct Repository {
-    pub owner: String,
-    pub name: String,
     pub full_name: String,
-    pub url: String,
+    pub security_and_analysis: Option<SecurityAndAnalysis>,
+}
+
+#[derive(Debug, Hash, Eq, PartialEq)]
+#[non_exhaustive]
+pub struct SecurityAndAnalysis {
+    pub secret_scanning: Status,
+    pub secret_scanning_push_protection: Status,
+    pub dependabot_security_updates: Status,
+    pub secret_scanning_validity_checks: Status,
+}
+
+#[derive(Debug, Hash, Eq, PartialEq)]
+pub enum Status {
+    Enabled,
+    Disabled,
 }

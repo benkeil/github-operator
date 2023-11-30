@@ -29,10 +29,10 @@ spec:
           status:
             nullable: true
             properties:
-              provisioned:
-                type: boolean
+              url:
+                type: string
             required:
-            - provisioned
+            - url
             type: object
         required:
         - spec
