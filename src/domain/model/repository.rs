@@ -1,7 +1,7 @@
 #[derive(Debug, Hash, Eq, PartialEq)]
 pub struct Repository {
     pub full_name: String,
-    pub security_and_analysis: Option<SecurityAndAnalysis>,
+    pub security_and_analysis: SecurityAndAnalysis,
 }
 
 #[derive(Debug, Hash, Eq, PartialEq)]

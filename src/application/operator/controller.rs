@@ -59,7 +59,7 @@ async fn reconcile(
                     log::info!("object ref: {:?}", github_repository.object_ref(&()));
                     match ctx
                         .reconcile_use_case
-                        .execute(github_repository.clone(), recorder)
+                        .execute(&github_repository.spec, recorder)
                         .await
                     {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
