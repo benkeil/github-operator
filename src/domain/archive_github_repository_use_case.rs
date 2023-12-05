@@ -15,7 +15,7 @@ impl ArchiveGitHubRepositoryUseCase {
         &self,
         github_repository: Arc<GitHubRepository>,
     ) -> Result<(), ArchiveGitHubRepositoryUseCaseError> {
-        let (owner, name) = github_repository.spec.slug.split_once('/').unwrap();
+        let (owner, name) = github_repository.spec.full_name.split_once('/').unwrap();
         log::info!("archive repository: {}/{}", owner, name);
         self.github_service
             .archive_repository(owner, name)

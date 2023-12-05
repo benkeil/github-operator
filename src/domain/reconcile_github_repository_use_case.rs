@@ -18,39 +18,78 @@ impl ReconcileGitHubRepositoryUseCase {
         spec: &GitHubRepositorySpec,
         recorder: Recorder,
     ) -> Result<Repository, ReconcileGitHubRepositoryUseCaseError> {
-        log::info!("reconcile: {}", spec.slug);
-        let (owner, name) = spec.slug.split_once('/').unwrap();
-        let repository = self.get_or_create_repository(owner, name, &recorder).await?;
+        log::info!("reconcile: {}", spec.full_name);
+        let (owner, name) = spec.full_name.split_once('/').unwrap();
+        let repository = self
+            .get_or_create_repository(owner, name, &recorder)
+            .await?;
         log::info!("repository: {:#?}", repository);
 
-        if repository.security_and_analysis.secret_scanning != Status::Enabled {
-            self.set_secret_scanning(owner, name, &recorder).await?;
-        }
+        if let Some(security_and_analysis) = &spec.security_and_analysis {
+            if let Some(secret_scanning) = &security_and_analysis.secret_scanning {
+                if repository.security_and_analysis.secret_scanning != *secret_scanning {
+                    self.set_secret_scanning(owner, name, &recorder).await?;
+                }
+            }
 
-        if repository.security_and_analysis.secret_scanning_push_protection != Status::Enabled {
-            self.set_secret_scanning_push_protection(owner, name, &recorder).await?
-        }
+            if let Some(secret_scanning_push_protection) =
+                &security_and_analysis.secret_scanning_push_protection
+            {
+                if repository
+                    .security_and_analysis
+                    .secret_scanning_push_protection
+                    != *secret_scanning_push_protection
+                {
+                    self.set_secret_scanning_push_protection(owner, name, &recorder)
+                        .await?;
+                }
+            }
 
-        if repository.security_and_analysis.dependabot_security_updates != Status::Enabled {
-            self.set_dependabot_security_updates(owner, name, &recorder).await?
-        }
+            if let Some(dependabot_security_updates) =
+                &security_and_analysis.dependabot_security_updates
+            {
+                if repository.security_and_analysis.dependabot_security_updates
+                    != *dependabot_security_updates
+                {
+                    self.set_dependabot_security_updates(owner, name, &recorder)
+                        .await?;
+                }
+            }
 
-        if repository.security_and_analysis.secret_scanning_validity_checks != Status::Enabled {
-            self.set_secret_scanning_validity_checks(owner, name, &recorder).await?
+            if let Some(secret_scanning_validity_checks) =
+                &security_and_analysis.secret_scanning_validity_checks
+            {
+                if repository
+                    .security_and_analysis
+                    .secret_scanning_validity_checks
+                    != *secret_scanning_validity_checks
+                {
+                    self.set_secret_scanning_validity_checks(owner, name, &recorder)
+                        .await?;
+                }
+            }
         }
 
         Ok(repository)
     }
 
-    async fn get_or_create_repository(self, owner: &str, name: &str, recorder: &Recorder) -> Repository {
+    async fn get_or_create_repository(
+        &self,
+        owner: &str,
+        name: &str,
+        recorder: &Recorder,
+    ) -> Result<Repository, ReconcileGitHubRepositoryUseCaseError> {
         let repository = self
             .github_service
             .get_repository(owner, name)
             .await
             .map_err(|e| ReconcileGitHubRepositoryUseCaseError::Error)?;
-        match repository {
+        Ok(match repository {
             None => {
-                let repository = self.github_service.create_repository(owner, name).await
+                let repository = self
+                    .github_service
+                    .create_repository(owner, name)
+                    .await
                     .map_err(|e| ReconcileGitHubRepositoryUseCaseError::Error)?;
                 recorder
                     .publish(Event {
@@ -65,10 +104,15 @@ impl ReconcileGitHubRepositoryUseCase {
                 repository
             }
             Some(repository) => repository,
-        }
+        })
     }
 
-    async fn set_secret_scanning(self, owner: &str, name: &str, recorder: &Recorder) {
+    async fn set_secret_scanning(
+        &self,
+        owner: &str,
+        name: &str,
+        recorder: &Recorder,
+    ) -> Result<(), ReconcileGitHubRepositoryUseCaseError> {
         self.github_service
             .set_secret_scanning(owner, name, Status::Enabled)
             .await
@@ -83,9 +127,15 @@ impl ReconcileGitHubRepositoryUseCase {
             })
             .await
             .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+        Ok(())
     }
 
-    async fn set_secret_scanning_push_protection(self, owner: &str, name: &str, recorder: &Recorder) {
+    async fn set_secret_scanning_push_protection(
+        &self,
+        owner: &str,
+        name: &str,
+        recorder: &Recorder,
+    ) -> Result<(), ReconcileGitHubRepositoryUseCaseError> {
         self.github_service
             .set_secret_scanning_push_protection(owner, name, Status::Enabled)
             .await
@@ -100,9 +150,15 @@ impl ReconcileGitHubRepositoryUseCase {
             })
             .await
             .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+        Ok(())
     }
 
-    async fn set_dependabot_security_updates(self, owner: &str, name: &str, recorder: &Recorder) {
+    async fn set_dependabot_security_updates(
+        &self,
+        owner: &str,
+        name: &str,
+        recorder: &Recorder,
+    ) -> Result<(), ReconcileGitHubRepositoryUseCaseError> {
         self.github_service
             .set_dependabot_security_updates(owner, name, Status::Enabled)
             .await
@@ -117,9 +173,15 @@ impl ReconcileGitHubRepositoryUseCase {
             })
             .await
             .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+        Ok(())
     }
 
-    async fn set_secret_scanning_validity_checks(self, owner: &str, name: &str, recorder: &Recorder) {
+    async fn set_secret_scanning_validity_checks(
+        &self,
+        owner: &str,
+        name: &str,
+        recorder: &Recorder,
+    ) -> Result<(), ReconcileGitHubRepositoryUseCaseError> {
         self.github_service
             .set_secret_scanning_validity_checks(owner, name, Status::Enabled)
             .await
@@ -134,6 +196,7 @@ impl ReconcileGitHubRepositoryUseCase {
             })
             .await
             .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+        Ok(())
     }
 }
 
