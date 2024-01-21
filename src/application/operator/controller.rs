@@ -1,11 +1,11 @@
+use std::backtrace::Backtrace;
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::StreamExt;
-use k8s_openapi::api::core::v1::ObjectReference;
+use futures::{StreamExt, TryFutureExt};
 use kube::api::{Patch, PatchParams};
 use kube::runtime::controller::Action;
-use kube::runtime::events::{Event as KubeEvent, EventType, Recorder, Reporter};
+use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Error, Event};
 use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
@@ -13,7 +13,6 @@ use kube::{Api, Client, Resource};
 use serde_json::json;
 
 use crate::domain::archive_github_repository_use_case::ArchiveGitHubRepositoryUseCase;
-use crate::domain::model::github_repository;
 use crate::domain::model::github_repository::{GitHubRepository, GitHubRepositoryStatus};
 use crate::domain::model::repository::Repository;
 use crate::domain::reconcile_github_repository_use_case::ReconcileGitHubRepositoryUseCase;
@@ -41,16 +40,25 @@ pub async fn run(controller_context: ControllerContext) -> Result<(), Controller
 async fn reconcile(
     github_repository: Arc<GitHubRepository>,
     ctx: Arc<Context>,
-) -> Result<Action, Error<ControllerError>> {
-    // must be namespaced, and because of that here
+) -> Result<Action, ControllerError> {
+    log::info!("reconcile: {:?}", github_repository.object_ref(&()));
+    // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
         "github-repository-controller".into(),
         github_repository.object_ref(&()),
     );
+    let github_repository_api = Api::<GitHubRepository>::namespaced(
+        ctx.client.clone(),
+        github_repository
+            .metadata
+            .namespace
+            .as_ref()
+            .ok_or_else(|| ControllerError::IllegalDocument)?,
+    );
 
     finalizer(
-        &ctx.github_repository_api,
+        &github_repository_api,
         "github-repository-controller.platform.benkeil.de/cleanup",
         github_repository,
         |event| async {
@@ -76,14 +84,15 @@ async fn reconcile(
         },
     )
     .await
+    .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }
 
 fn handle_errors(
     _github_repository: Arc<GitHubRepository>,
-    error: &Error<ControllerError>,
+    error: &ControllerError,
     _ctx: Arc<Context>,
 ) -> Action {
-    log::warn!("reconcile failed: {:?}", error);
+    log::warn!("reconcile failed: {:?}", error,);
     Action::requeue(Duration::from_secs(5))
 }
 

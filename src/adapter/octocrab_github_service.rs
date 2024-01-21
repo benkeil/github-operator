@@ -1,8 +1,10 @@
+use crate::domain::model::github_repository::{ActionsSettings, AutolinkReference, Status};
 use async_trait::async_trait;
 use octocrab::Octocrab;
 use serde::{Deserialize, Serialize};
 
-use crate::domain::model::repository::{Repository, SecurityAndAnalysis, Status};
+use crate::domain::model::repository::{Repository, SecurityAndAnalysis};
+use crate::domain::model::update_repository::UpdateRepository;
 use crate::domain::port::github_service::{GitHubService, GitHubServiceError};
 
 #[derive(Clone)]
@@ -16,6 +18,25 @@ impl OctocrabGitHubService {
     }
 }
 
+impl OctocrabGitHubService {
+    async fn get_autolinks(
+        &self,
+        owner: &str,
+        name: &str,
+    ) -> Result<Vec<AutolinkReference>, GitHubServiceError> {
+        log::trace!("get_autolinks({}/{})", owner, name);
+        let autolinks: Result<Vec<AutolinkReference>, octocrab::Error> = self
+            .octocrab
+            .get(format!("/repos/{owner}/{name}/autolinks"), None::<&()>)
+            .await;
+        log::debug!("autolinks: {:#?}", autolinks);
+        match autolinks {
+            Ok(autolinks) => Ok(autolinks),
+            Err(e) => Ok(vec![]),
+        }
+    }
+}
+
 #[async_trait]
 impl GitHubService for OctocrabGitHubService {
     async fn get_repository(
@@ -23,13 +44,27 @@ impl GitHubService for OctocrabGitHubService {
         owner: &str,
         name: &str,
     ) -> Result<Option<Repository>, GitHubServiceError> {
+        log::trace!("get_repository({}/{})", owner, name);
         let repository: Result<RepositoryResponse, octocrab::Error> = self
             .octocrab
             .get(format!("/repos/{owner}/{name}"), None::<&()>)
             .await;
-        log::debug!("repository: {:#?}", repository);
         match repository {
-            Ok(repository) => Ok(Some(repository.into())),
+            Ok(repository) => {
+                log::debug!("repository: {:#?}", repository);
+                let autolinks = self.get_autolinks(owner, name).await?;
+                Ok(Some(Repository {
+                    full_name: repository.full_name,
+                    security_and_analysis: repository.security_and_analysis.into(),
+                    autolink_references: autolinks,
+                    delete_branch_on_merge: repository.delete_branch_on_merge,
+                    allow_auto_merge: repository.allow_auto_merge,
+                    allow_squash_merge: repository.allow_squash_merge,
+                    allow_merge_commit: repository.allow_merge_commit,
+                    allow_rebase_merge: repository.allow_rebase_merge,
+                    allow_update_branch: repository.allow_update_branch,
+                }))
+            }
             Err(e) => Ok(None),
         }
     }
@@ -40,6 +75,26 @@ impl GitHubService for OctocrabGitHubService {
         name: &str,
     ) -> Result<Repository, GitHubServiceError> {
         todo!()
+    }
+
+    async fn update_repository(
+        &self,
+        owner: &str,
+        name: &str,
+        repository: &UpdateRepository,
+    ) -> Result<Repository, GitHubServiceError> {
+        log::trace!("update_repository: {:#?}", &serde_json::json!(repository));
+        let repository: Result<RepositoryResponse, octocrab::Error> = self
+            .octocrab
+            .patch(
+                format!("/repos/{owner}/{name}"),
+                Some(&serde_json::json!(repository)),
+            )
+            .await;
+        log::debug!("repository: {:#?}", repository);
+        self.get_repository(owner, name)
+            .await
+            .map(|r| r.ok_or(GitHubServiceError::Error))?
     }
 
     async fn set_secret_scanning(
@@ -92,70 +147,39 @@ impl GitHubService for OctocrabGitHubService {
     }
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-struct RepositoryResponse {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct RepositoryResponse {
     pub full_name: String,
-    pub security_and_analysis: Option<SecurityAndAnalysisResponse>,
+    pub security_and_analysis: SecurityAndAnalysisResponse,
+    // pub actions: ActionsSettings,
+    pub delete_branch_on_merge: bool,
+    pub allow_auto_merge: bool,
+    pub allow_squash_merge: bool,
+    pub allow_merge_commit: bool,
+    pub allow_rebase_merge: bool,
+    pub allow_update_branch: bool,
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
-#[non_exhaustive]
-struct SecurityAndAnalysisResponse {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct SecurityAndAnalysisResponse {
     pub secret_scanning: SecurityAndAnalysisStatusResponse,
     pub secret_scanning_push_protection: SecurityAndAnalysisStatusResponse,
     pub dependabot_security_updates: SecurityAndAnalysisStatusResponse,
     pub secret_scanning_validity_checks: SecurityAndAnalysisStatusResponse,
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
-struct SecurityAndAnalysisStatusResponse {
-    pub status: StatusResponse,
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct SecurityAndAnalysisStatusResponse {
+    pub status: Status,
 }
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum StatusResponse {
-    Enabled,
-    Disabled,
-}
-
-impl From<RepositoryResponse> for Repository {
-    fn from(repository_response: RepositoryResponse) -> Self {
-        Self {
-            full_name: repository_response.full_name,
-            security_and_analysis: repository_response.security_and_analysis.map(
-                |security_and_analysis| {
-                    let secret_scanning = security_and_analysis.secret_scanning.status.into();
-                    let secret_scanning_push_protection = security_and_analysis
-                        .secret_scanning_push_protection
-                        .status
-                        .into();
-                    let dependabot_security_updates = security_and_analysis
-                        .dependabot_security_updates
-                        .status
-                        .into();
-                    let secret_scanning_validity_checks = security_and_analysis
-                        .secret_scanning_validity_checks
-                        .status
-                        .into();
-                    SecurityAndAnalysis {
-                        secret_scanning,
-                        secret_scanning_push_protection,
-                        dependabot_security_updates,
-                        secret_scanning_validity_checks,
-                    }
-                },
-            ),
-        }
-    }
-}
-
-impl From<StatusResponse> for Status {
-    fn from(status: StatusResponse) -> Self {
-        match status {
-            StatusResponse::Enabled => Self::Enabled,
-            StatusResponse::Disabled => Self::Disabled,
+impl From<SecurityAndAnalysisResponse> for SecurityAndAnalysis {
+    fn from(value: SecurityAndAnalysisResponse) -> Self {
+        SecurityAndAnalysis {
+            secret_scanning: value.secret_scanning.status,
+            secret_scanning_push_protection: value.secret_scanning_push_protection.status,
+            dependabot_security_updates: value.dependabot_security_updates.status,
+            secret_scanning_validity_checks: value.secret_scanning_validity_checks.status,
         }
     }
 }

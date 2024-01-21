@@ -1,3 +1,4 @@
+use crate::domain::model::repository::Repository;
 use garde::Validate;
 use kube::CustomResource;
 use schemars::JsonSchema;
@@ -16,8 +17,8 @@ use serde::{Deserialize, Serialize};
 pub struct GitHubRepositorySpec {
     #[garde(skip)]
     pub full_name: String,
-    #[garde(skip)]
-    pub actions: Option<ActionsSettings>,
+    // #[garde(skip)]
+    // pub actions: Option<ActionsSettings>,
     #[garde(skip)]
     pub delete_branch_on_merge: Option<bool>,
     #[garde(skip)]
@@ -41,26 +42,23 @@ pub struct ActionsSettings {
     pub access: Option<AccessSettings>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum AccessSettings {
     None,
     Organization,
     Enterprise,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AutolinkReference {
     pub key_prefix: String,
     pub url_template: String,
     pub is_alphanumeric: bool,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema)]
-pub struct GitHubRepositoryStatus {
-    // pub security_and_analysis: Option<SecurityAndAnalysis>,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SecurityAndAnalysis {
     pub secret_scanning: Option<Status>,
     pub secret_scanning_push_protection: Option<Status>,
@@ -69,7 +67,14 @@ pub struct SecurityAndAnalysis {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum Status {
     Enabled,
     Disabled,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubRepositoryStatus {
+    // pub security_and_analysis: Option<SecurityAndAnalysis>,
 }

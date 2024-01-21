@@ -1,7 +1,8 @@
 apiVersion: platform.benkeil.de/v1alpha1
 kind: GitHubRepository
 metadata:
-  name: test-1
-  namespace: team-a
+  name: hydra
+  namespace: benkeil
 spec:
-  slug: benkeil/hydra
+  fullName: benkeil/hydra
+  deleteBranchOnMerge: true

@@ -1,5 +1,11 @@
 # https://sagiegurari.github.io/cargo-make/#usage-task-command-script-task
 
+kind-create:
+	kind create cluster --image kindest/node:v1.27.3
+
+kind-delete:
+	kind delete cluster
+
 crd-clean:
 	rm -f crd/*
 
@@ -21,4 +27,4 @@ kube-delete:
 	kubectl delete -f demo/github-repository
 
 
-renew: kube-delete crd-delete crd-clean crd-generate crd-install kube-apply
+renew: kube-delete crd-delete crd-generate crd-install kube-apply

@@ -14,4 +14,4 @@ root:
 
 loggers:
   github_operator:
-    level: debug
+    level: trace

@@ -1,6 +1,11 @@
-use async_trait::async_trait;
+use std::fmt::{Debug, Display};
 
-use crate::domain::model::repository::{Repository, Status};
+use async_trait::async_trait;
+use serde::Serialize;
+
+use crate::domain::model::github_repository::Status;
+use crate::domain::model::repository::Repository;
+use crate::domain::model::update_repository::UpdateRepository;
 
 #[async_trait]
 pub trait GitHubService {
@@ -13,6 +18,12 @@ pub trait GitHubService {
         &self,
         owner: &str,
         name: &str,
+    ) -> Result<Repository, GitHubServiceError>;
+    async fn update_repository(
+        &self,
+        owner: &str,
+        name: &str,
+        repository: &UpdateRepository,
     ) -> Result<Repository, GitHubServiceError>;
     async fn set_secret_scanning(
         &self,
@@ -41,4 +52,7 @@ pub trait GitHubService {
     async fn archive_repository(&self, owner: &str, name: &str) -> Result<(), GitHubServiceError>;
 }
 
-pub enum GitHubServiceError {}
+#[derive(PartialEq, Debug)]
+pub enum GitHubServiceError {
+    Error,
+}

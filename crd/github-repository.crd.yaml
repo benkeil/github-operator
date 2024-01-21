@@ -21,18 +21,75 @@ spec:
         properties:
           spec:
             properties:
-              slug:
+              allowAutoMerge:
+                nullable: true
+                type: boolean
+              allowMergeCommit:
+                nullable: true
+                type: boolean
+              allowRebaseMerge:
+                nullable: true
+                type: boolean
+              allowSquashMerge:
+                nullable: true
+                type: boolean
+              allowUpdateBranch:
+                nullable: true
+                type: boolean
+              autolinkReferences:
+                items:
+                  properties:
+                    isAlphanumeric:
+                      type: boolean
+                    keyPrefix:
+                      type: string
+                    urlTemplate:
+                      type: string
+                  required:
+                  - isAlphanumeric
+                  - keyPrefix
+                  - urlTemplate
+                  type: object
+                nullable: true
+                type: array
+              deleteBranchOnMerge:
+                nullable: true
+                type: boolean
+              fullName:
                 type: string
+              securityAndAnalysis:
+                nullable: true
+                properties:
+                  dependabotSecurityUpdates:
+                    enum:
+                    - enabled
+                    - disabled
+                    nullable: true
+                    type: string
+                  secretScanning:
+                    enum:
+                    - enabled
+                    - disabled
+                    nullable: true
+                    type: string
+                  secretScanningPushProtection:
+                    enum:
+                    - enabled
+                    - disabled
+                    nullable: true
+                    type: string
+                  secretScanningValidityChecks:
+                    enum:
+                    - enabled
+                    - disabled
+                    nullable: true
+                    type: string
+                type: object
             required:
-            - slug
+            - fullName
             type: object
           status:
             nullable: true
-            properties:
-              url:
-                type: string
-            required:
-            - url
             type: object
         required:
         - spec

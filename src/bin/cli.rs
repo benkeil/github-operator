@@ -31,6 +31,8 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+
     let args = Cli::parse();
 
     let github_client = octocrab::OctocrabBuilder::from_env();
@@ -40,8 +42,9 @@ async fn main() {
         Commands::Get { repository } => {
             let (owner, name) = repository.split_once('/').unwrap();
             println!("get {}/{}", owner, name);
-            let github_repository = github_service.get_repository(owner, name).await.unwrap();
-            println!("{:#?}", github_repository);
+            if let Ok(github_repository) = github_service.get_repository(owner, name).await {
+                println!("{:#?}", github_repository);
+            }
         }
         Commands::Set { repository } => {
             println!("set {}", repository);

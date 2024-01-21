@@ -1,7 +1,9 @@
 use kube::runtime::events::{Event, EventType, Recorder};
 
-use crate::domain::model::github_repository::GitHubRepositorySpec;
-use crate::domain::model::repository::{Repository, Status};
+use crate::domain::model::github_repository::{GitHubRepositorySpec, Status};
+use crate::domain::model::repository::Repository;
+use crate::domain::model::update_repository::UpdateRepository;
+use crate::domain::model::RepositoryChanged;
 use crate::domain::port::github_service::GitHubService;
 
 pub struct ReconcileGitHubRepositoryUseCase {
@@ -25,10 +27,41 @@ impl ReconcileGitHubRepositoryUseCase {
             .await?;
         log::info!("repository: {:#?}", repository);
 
+        self.set_security_settings(&repository, spec, &recorder)
+            .await?;
+
+        let update_repository = UpdateRepository::from(spec);
+        if repository.changed(&update_repository) {
+            self.github_service
+                .update_repository(owner, name, &update_repository)
+                .await
+                .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+            recorder
+                .publish(Event {
+                    action: "repository-updated".into(),
+                    reason: "Reconciling".into(),
+                    note: Some("GitHub repository updated".into()),
+                    type_: EventType::Normal,
+                    secondary: None,
+                })
+                .await
+                .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+        }
+
+        Ok(repository)
+    }
+
+    async fn set_security_settings(
+        &self,
+        repository: &Repository,
+        spec: &GitHubRepositorySpec,
+        recorder: &Recorder,
+    ) -> Result<(), ReconcileGitHubRepositoryUseCaseError> {
+        let (owner, name) = spec.full_name.split_once('/').unwrap();
         if let Some(security_and_analysis) = &spec.security_and_analysis {
             if let Some(secret_scanning) = &security_and_analysis.secret_scanning {
                 if repository.security_and_analysis.secret_scanning != *secret_scanning {
-                    self.set_secret_scanning(owner, name, &recorder).await?;
+                    self.set_secret_scanning(owner, name, recorder).await?;
                 }
             }
 
@@ -40,7 +73,7 @@ impl ReconcileGitHubRepositoryUseCase {
                     .secret_scanning_push_protection
                     != *secret_scanning_push_protection
                 {
-                    self.set_secret_scanning_push_protection(owner, name, &recorder)
+                    self.set_secret_scanning_push_protection(owner, name, recorder)
                         .await?;
                 }
             }
@@ -51,7 +84,7 @@ impl ReconcileGitHubRepositoryUseCase {
                 if repository.security_and_analysis.dependabot_security_updates
                     != *dependabot_security_updates
                 {
-                    self.set_dependabot_security_updates(owner, name, &recorder)
+                    self.set_dependabot_security_updates(owner, name, recorder)
                         .await?;
                 }
             }
@@ -64,13 +97,13 @@ impl ReconcileGitHubRepositoryUseCase {
                     .secret_scanning_validity_checks
                     != *secret_scanning_validity_checks
                 {
-                    self.set_secret_scanning_validity_checks(owner, name, &recorder)
+                    self.set_secret_scanning_validity_checks(owner, name, recorder)
                         .await?;
                 }
             }
         }
 
-        Ok(repository)
+        Ok(())
     }
 
     async fn get_or_create_repository(
@@ -202,4 +235,17 @@ impl ReconcileGitHubRepositoryUseCase {
 
 pub enum ReconcileGitHubRepositoryUseCaseError {
     Error,
+}
+
+impl From<&GitHubRepositorySpec> for UpdateRepository {
+    fn from(value: &GitHubRepositorySpec) -> Self {
+        Self {
+            delete_branch_on_merge: value.delete_branch_on_merge,
+            allow_auto_merge: value.allow_auto_merge,
+            allow_squash_merge: value.allow_squash_merge,
+            allow_merge_commit: value.allow_merge_commit,
+            allow_rebase_merge: value.allow_rebase_merge,
+            allow_update_branch: value.allow_update_branch,
+        }
+    }
 }
