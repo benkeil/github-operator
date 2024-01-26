@@ -11,6 +11,8 @@ use github_operator::extensions::OctocrabExtensoin;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+    #[arg(short, long)]
+    pub output_format: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -43,7 +45,15 @@ async fn main() {
             let (owner, name) = repository.split_once('/').unwrap();
             println!("get {}/{}", owner, name);
             if let Ok(github_repository) = github_service.get_repository(owner, name).await {
-                println!("{:#?}", github_repository);
+                match args.output_format {
+                    Some(format) if format == "json" => {
+                        let json = serde_json::to_string_pretty(&github_repository).unwrap();
+                        println!("{}", json);
+                    }
+                    _ => {
+                        println!("{:#?}", github_repository);
+                    }
+                }
             }
         }
         Commands::Set { repository } => {

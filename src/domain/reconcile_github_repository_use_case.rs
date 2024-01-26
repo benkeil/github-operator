@@ -25,7 +25,7 @@ impl ReconcileGitHubRepositoryUseCase {
             .await?;
         log::info!("repository: {:#?}", repository);
 
-        let spec_repo: Repository = spec.into();
+        let spec_repo: Repository = spec.clone().into();
         if repository.repository.ne(&spec_repo.repository) {
             log::info!("repository is up to date");
             return Ok(repository);
@@ -48,7 +48,7 @@ impl ReconcileGitHubRepositoryUseCase {
         Ok(match repository {
             Ok(Some(repository)) => repository,
             Ok(None) => {
-                self
+                let repository = self
                     .github_service
                     .create_repository(owner, name)
                     .await
