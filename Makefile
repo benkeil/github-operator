@@ -1,7 +1,7 @@
 # https://sagiegurari.github.io/cargo-make/#usage-task-command-script-task
 
 kind-create:
-	kind create cluster --image kindest/node:v1.27.3
+	kind create cluster
 
 kind-delete:
 	kind delete cluster
