@@ -12,7 +12,13 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
     #[arg(short, long)]
-    pub output_format: Option<String>,
+    pub output_format: Option<OutputFormat>,
+}
+
+#[derive(Debug, clap::ValueEnum, Clone)]
+enum OutputFormat {
+    Default,
+    Json,
 }
 
 #[derive(Debug, Subcommand)]
@@ -46,7 +52,7 @@ async fn main() {
             println!("get {}/{}", owner, name);
             if let Ok(github_repository) = github_service.get_repository(owner, name).await {
                 match args.output_format {
-                    Some(format) if format == "json" => {
+                    Some(OutputFormat::Json) => {
                         let json = serde_json::to_string_pretty(&github_repository).unwrap();
                         println!("{}", json);
                     }
