@@ -28,4 +28,5 @@ pub trait GitHubService {
 #[derive(PartialEq, Debug)]
 pub enum GitHubServiceError {
     Error,
+    NotFound,
 }

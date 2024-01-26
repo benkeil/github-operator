@@ -34,6 +34,7 @@ impl OctocrabGitHubService {
     }
 }
 
+
 #[async_trait]
 impl GitHubService for OctocrabGitHubService {
     async fn get_repository(
@@ -46,10 +47,18 @@ impl GitHubService for OctocrabGitHubService {
             .octocrab
             .get(format!("/repos/{owner}/{name}"), None::<&()>)
             .await;
-        Ok(Some(Repository {
-            repository: repository.unwrap(),
-            autolink_references: None,
-        }))
+        match repository {
+            Ok(repository) => {
+                Ok(Some(Repository {
+                    repository,
+                    autolink_references: None,
+                }))
+            }
+            Err(e) => {
+                log::info!("get_repository: {:#?}", e);
+                Err(GitHubServiceError::Error)
+            },
+        }
     }
 
     async fn create_repository(

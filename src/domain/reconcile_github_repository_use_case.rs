@@ -2,7 +2,7 @@ use kube::runtime::events::{Event, EventType, Recorder};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 use crate::domain::model::repository::Repository;
-use crate::domain::port::github_service::GitHubService;
+use crate::domain::port::github_service::{GitHubService, GitHubServiceError};
 
 pub struct ReconcileGitHubRepositoryUseCase {
     github_service: Box<dyn GitHubService + Send + Sync>,
@@ -25,6 +25,12 @@ impl ReconcileGitHubRepositoryUseCase {
             .await?;
         log::info!("repository: {:#?}", repository);
 
+        let spec_repo: Repository = spec.into();
+        if repository.repository.ne(&spec_repo.repository) {
+            log::info!("repository is up to date");
+            return Ok(repository);
+        }
+
         Ok(repository)
     }
 
@@ -38,11 +44,11 @@ impl ReconcileGitHubRepositoryUseCase {
         let repository = self
             .github_service
             .get_repository(owner, name)
-            .await
-            .map_err(|e| ReconcileGitHubRepositoryUseCaseError::Error)?;
+            .await;
         Ok(match repository {
-            None => {
-                let repository = self
+            Ok(Some(repository)) => repository,
+            Ok(None) => {
+                self
                     .github_service
                     .create_repository(owner, name)
                     .await
@@ -59,7 +65,7 @@ impl ReconcileGitHubRepositoryUseCase {
                     .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
                 repository
             }
-            Some(repository) => repository,
+            Err(e) => return Err(ReconcileGitHubRepositoryUseCaseError::Error),
         })
     }
 }

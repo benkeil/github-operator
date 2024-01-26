@@ -30,9 +30,11 @@ pub struct GitHubRepositorySpec {
     #[garde(skip)]
     pub allow_update_branch: Option<bool>,
     #[garde(skip)]
-    pub autolink_references: Option<Vec<AutolinkReference>>,
-    #[garde(skip)]
     pub security_and_analysis: Option<SecurityAndAnalysisResponse>,
+
+    // from another API
+    #[garde(skip)]
+    pub autolink_references: Option<Vec<AutolinkReference>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema, PartialEq)]

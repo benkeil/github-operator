@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Repository {
@@ -45,4 +46,22 @@ pub struct AutolinkReference {
     pub key_prefix: String,
     pub url_template: String,
     pub is_alphanumeric: bool,
+}
+
+impl From<GitHubRepositorySpec> for Repository {
+    fn from(spec: GitHubRepositorySpec) -> Self {
+        Self {
+            repository: RepositoryResponse {
+                full_name: spec.full_name,
+                security_and_analysis: spec.security_and_analysis,
+                delete_branch_on_merge: spec.delete_branch_on_merge,
+                allow_auto_merge: spec.allow_auto_merge,
+                allow_squash_merge: spec.allow_squash_merge,
+                allow_merge_commit: spec.allow_merge_commit,
+                allow_rebase_merge: spec.allow_rebase_merge,
+                allow_update_branch: spec.allow_update_branch,
+            },
+            autolink_references: spec.autolink_references,
+        }
+    }
 }
