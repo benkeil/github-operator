@@ -1,0 +1,17 @@
+apiVersion: platform.benkeil.de/v1alpha1
+kind: GitHubRepository
+metadata:
+  name: alarm-notification
+  namespace: pdh-da
+spec:
+  full_name: otto-ec/alarm-notification
+  delete_branch_on_merge: true
+  security_and_analysis:
+    secret_scanning:
+      status: enabled
+    secret_scanning_push_protection:
+      status: enabled
+    dependabot_security_updates:
+      status: enabled
+    secret_scanning_validity_checks:
+      status: enabled

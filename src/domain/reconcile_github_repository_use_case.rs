@@ -2,7 +2,7 @@ use kube::runtime::events::{Event, EventType, Recorder};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 use crate::domain::model::repository::Repository;
-use crate::domain::port::github_service::{GitHubService, GitHubServiceError};
+use crate::domain::port::github_service::GitHubService;
 
 pub struct ReconcileGitHubRepositoryUseCase {
     github_service: Box<dyn GitHubService + Send + Sync>,
@@ -25,15 +25,30 @@ impl ReconcileGitHubRepositoryUseCase {
             .await?;
         log::info!("repository: {:#?}", repository);
 
-        let spec_repo: Repository = spec.clone().into();
-        if repository.repository.ne(&spec_repo.repository) {
-            log::info!("repository is up to date");
+        let expected: Repository = spec.clone().into();
+        log::info!("expected: {:#?}", expected);
+        if repository.repository.ne("&expected.repository") {
+            log::info!("repository needs to be updated");
+            let repository = self
+                .github_service
+                .update_repository(owner, name, &expected.repository)
+                .await
+                .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+            recorder
+                .publish(Event {
+                    action: "repository-updated".into(),
+                    reason: "Reconciling".into(),
+                    note: Some("GitHub repository updated".into()),
+                    type_: EventType::Normal,
+                    secondary: None,
+                })
+                .await
+                .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
             return Ok(repository);
         }
 
         Ok(repository)
     }
-
 
     async fn get_or_create_repository(
         &self,
@@ -41,10 +56,7 @@ impl ReconcileGitHubRepositoryUseCase {
         name: &str,
         recorder: &Recorder,
     ) -> Result<Repository, ReconcileGitHubRepositoryUseCaseError> {
-        let repository = self
-            .github_service
-            .get_repository(owner, name)
-            .await;
+        let repository = self.github_service.get_repository(owner, name).await;
         Ok(match repository {
             Ok(Some(repository)) => repository,
             Ok(None) => {

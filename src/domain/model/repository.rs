@@ -1,6 +1,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
+use crate::domain::model::CompareToSpec;
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Repository {
@@ -41,7 +43,7 @@ pub enum Status {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
-#[serde(rename_all = "camelCase")]
+//#[serde(rename_all = "camelCase")]
 pub struct AutolinkReference {
     pub key_prefix: String,
     pub url_template: String,
@@ -63,5 +65,17 @@ impl From<GitHubRepositorySpec> for Repository {
             },
             autolink_references: spec.autolink_references,
         }
+    }
+}
+
+impl CompareToSpec for RepositoryResponse {
+    fn differ_from_spec(&self, spec: &Self) -> bool {
+        if spec.delete_branch_on_merge.is_some()
+            && spec.delete_branch_on_merge != self.delete_branch_on_merge
+        {
+            return true;
+        }
+
+        false
     }
 }

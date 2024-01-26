@@ -1,4 +1,6 @@
-use crate::domain::model::repository::{AutolinkReference, Repository, SecurityAndAnalysisResponse};
+use crate::domain::model::repository::{
+    AutolinkReference, Repository, SecurityAndAnalysisResponse,
+};
 use garde::Validate;
 use kube::CustomResource;
 use schemars::JsonSchema;
@@ -13,7 +15,7 @@ use serde::{Deserialize, Serialize};
     shortname = "repo"
 )]
 #[kube(status = "GitHubRepositoryStatus")]
-#[serde(rename_all = "camelCase")]
+//#[serde(rename_all = "camelCase")]
 pub struct GitHubRepositorySpec {
     #[garde(skip)]
     pub full_name: String,
