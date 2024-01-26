@@ -8,7 +8,7 @@ use github_operator::ControllerError;
 use crate::adapter::octocrab_github_service::OctocrabGitHubService;
 use crate::application::operator::controller::{self, ControllerContext};
 use crate::domain::archive_github_repository_use_case::ArchiveGitHubRepositoryUseCase;
-use crate::domain::model::github_repository::GitHubRepository;
+use crate::domain::model::github_repository_spec::GitHubRepository;
 use crate::domain::reconcile_github_repository_use_case::ReconcileGitHubRepositoryUseCase;
 use crate::extensions::OctocrabExtensoin;
 

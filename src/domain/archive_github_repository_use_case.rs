@@ -1,4 +1,4 @@
-use crate::domain::model::github_repository::GitHubRepository;
+use crate::domain::model::github_repository_spec::GitHubRepository;
 use crate::domain::port::github_service::GitHubService;
 use std::sync::Arc;
 

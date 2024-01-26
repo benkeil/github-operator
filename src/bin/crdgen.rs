@@ -1,4 +1,4 @@
-use github_operator::domain::model::github_repository::GitHubRepository;
+use github_operator::domain::model::github_repository_spec::GitHubRepository;
 use kube::CustomResourceExt;
 
 fn main() {

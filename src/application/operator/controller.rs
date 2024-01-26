@@ -13,7 +13,7 @@ use kube::{Api, Client, Resource};
 use serde_json::json;
 
 use crate::domain::archive_github_repository_use_case::ArchiveGitHubRepositoryUseCase;
-use crate::domain::model::github_repository::{GitHubRepository, GitHubRepositoryStatus};
+use crate::domain::model::github_repository_spec::{GitHubRepository, GitHubRepositoryStatus};
 use crate::domain::model::repository::Repository;
 use crate::domain::reconcile_github_repository_use_case::ReconcileGitHubRepositoryUseCase;
 use crate::extensions::DurationExtension;
@@ -105,7 +105,7 @@ async fn update_status(
         "status": GitHubRepositoryStatus { }
     });
     api.patch_status(
-        repository.full_name.as_str(),
+        repository.repository.full_name.as_str(),
         &PatchParams::default(),
         &Patch::Merge(status),
     )
