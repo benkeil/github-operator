@@ -39,16 +39,16 @@ spec:
               autolink_references:
                 items:
                   properties:
-                    isAlphanumeric:
+                    is_alphanumeric:
                       type: boolean
-                    keyPrefix:
+                    key_prefix:
                       type: string
-                    urlTemplate:
+                    url_template:
                       type: string
                   required:
-                  - isAlphanumeric
-                  - keyPrefix
-                  - urlTemplate
+                  - is_alphanumeric
+                  - key_prefix
+                  - url_template
                   type: object
                 nullable: true
                 type: array

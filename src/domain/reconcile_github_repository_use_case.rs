@@ -1,3 +1,4 @@
+use crate::domain::model::CompareToSpec;
 use kube::runtime::events::{Event, EventType, Recorder};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
@@ -25,13 +26,16 @@ impl ReconcileGitHubRepositoryUseCase {
             .await?;
         log::info!("repository: {:#?}", repository);
 
-        let expected: Repository = spec.clone().into();
-        log::info!("expected: {:#?}", expected);
-        if repository.repository.ne("&expected.repository") {
+        let repository_spec: Repository = spec.clone().into();
+        log::info!("expected: {:#?}", repository_spec);
+        if repository
+            .repository
+            .differ_from_spec(&repository_spec.repository)
+        {
             log::info!("repository needs to be updated");
             let repository = self
                 .github_service
-                .update_repository(owner, name, &expected.repository)
+                .update_repository(owner, name, &repository_spec.repository)
                 .await
                 .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
             recorder

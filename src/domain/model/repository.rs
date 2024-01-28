@@ -1,8 +1,13 @@
+use std::fmt::Debug;
+
+use crate::domain::model::CompareToSpec;
+use itertools::FoldWhile::{Continue, Done};
+use itertools::Itertools;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
-use crate::domain::model::CompareToSpec;
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Repository {
@@ -70,12 +75,93 @@ impl From<GitHubRepositorySpec> for Repository {
 
 impl CompareToSpec for RepositoryResponse {
     fn differ_from_spec(&self, spec: &Self) -> bool {
-        if spec.delete_branch_on_merge.is_some()
-            && spec.delete_branch_on_merge != self.delete_branch_on_merge
-        {
-            return true;
-        }
+        differ_from_spec(&spec.clone().into(), &self.clone().into())
+    }
+}
 
-        false
+fn differ_from_spec(spec: &Map<String, Value>, actual: &Map<String, Value>) -> bool {
+    spec.iter()
+        .fold_while(false, |acc, (key, value)| {
+            match value {
+                Value::Null => {
+                    return Continue(acc);
+                }
+                Value::Object(spec_object) => {
+                    match actual.get(key) {
+                        Some(Value::Object(actual_object)) => {
+                            let differ = differ_from_spec(spec_object, actual_object);
+                            if differ {
+                                return Done(true);
+                            }
+                        }
+                        _ => return Done(true),
+                    };
+                }
+                Value::String(_) | Value::Number(_) | Value::Bool(_) => {
+                    if actual.get(key) != Some(value) {
+                        return Done(true);
+                    }
+                }
+                Value::Array(_) => {
+                    panic!("Array not yet supported");
+                }
+            };
+            Continue(acc)
+        })
+        .into_inner()
+}
+
+impl From<RepositoryResponse> for Map<String, Value> {
+    fn from(value: RepositoryResponse) -> Self {
+        let json = serde_json::to_string(&value).unwrap();
+        serde_json::from_str::<Map<String, Value>>(&json).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn differ_from_spec() {
+        let spec = super::RepositoryResponse {
+            full_name: "foo/bar".into(),
+            security_and_analysis: Some(super::SecurityAndAnalysisResponse {
+                secret_scanning: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
+                secret_scanning_push_protection: None,
+                dependabot_security_updates: None,
+                secret_scanning_validity_checks: None,
+            }),
+            delete_branch_on_merge: Some(true),
+            allow_auto_merge: None,
+            allow_squash_merge: None,
+            allow_merge_commit: None,
+            allow_rebase_merge: None,
+            allow_update_branch: None,
+        };
+        let actual = super::RepositoryResponse {
+            full_name: "foo/bar".into(),
+            security_and_analysis: Some(super::SecurityAndAnalysisResponse {
+                secret_scanning: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
+                secret_scanning_push_protection: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
+                dependabot_security_updates: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
+                secret_scanning_validity_checks: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
+            }),
+            delete_branch_on_merge: Some(true),
+            allow_auto_merge: Some(true),
+            allow_squash_merge: Some(true),
+            allow_merge_commit: Some(true),
+            allow_rebase_merge: Some(true),
+            allow_update_branch: Some(true),
+        };
+        assert_eq!(false, super::differ_from_spec(&spec.into(), &actual.into()));
     }
 }
