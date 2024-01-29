@@ -55,7 +55,7 @@ impl ReconcileGitHubRepositoryUseCase {
             if repository.autolink_references != spec.autolink_references {
                 log::info!("autolink references needs to be updated");
                 self.github_service
-                    .update_autolink_references(owner, name, autolink_references.clone())
+                    .update_autolink_references(owner, name, autolink_references)
                     .await
                     .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
             }

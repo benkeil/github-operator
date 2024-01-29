@@ -26,7 +26,7 @@ pub trait GitHubService {
         &self,
         owner: &str,
         name: &str,
-        autolink_references: Vec<AutolinkReference>,
+        autolink_references: &Vec<AutolinkReference>,
     ) -> Result<Vec<AutolinkReference>, GitHubServiceError>;
     async fn archive_repository(&self, owner: &str, name: &str) -> Result<(), GitHubServiceError>;
 }

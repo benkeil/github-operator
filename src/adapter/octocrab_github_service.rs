@@ -101,7 +101,7 @@ impl GitHubService for OctocrabGitHubService {
         &self,
         owner: &str,
         name: &str,
-        autolink_references: Vec<AutolinkReference>,
+        autolink_references: &Vec<AutolinkReference>,
     ) -> Result<Vec<AutolinkReference>, GitHubServiceError> {
         log::trace!("update_autolink_references({}/{})", owner, name);
         let autolink_references_futures =
