@@ -4,7 +4,7 @@ metadata:
   name: alarm-notification
   namespace: pdh-da
 spec:
-  full_name: otto-ec/alarm-notification
+  full_name: otto-ec/pdh-da_alarm-notification
   delete_branch_on_merge: true
   security_and_analysis:
     secret_scanning:
@@ -15,3 +15,7 @@ spec:
       status: enabled
     secret_scanning_validity_checks:
       status: enabled
+  autolink_references:
+    - key_prefix: "DV-"
+      url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
+      is_alphanumeric: false

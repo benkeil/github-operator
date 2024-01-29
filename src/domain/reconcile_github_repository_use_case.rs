@@ -24,10 +24,10 @@ impl ReconcileGitHubRepositoryUseCase {
         let repository = self
             .get_or_create_repository(owner, name, &recorder)
             .await?;
-        log::info!("repository: {:#?}", repository);
+        log::debug!("repository: {:#?}", repository);
 
         let repository_spec: Repository = spec.clone().into();
-        log::info!("expected: {:#?}", repository_spec);
+        log::debug!("spec: {:#?}", repository_spec);
         if repository
             .repository
             .differ_from_spec(&repository_spec.repository)
@@ -51,6 +51,16 @@ impl ReconcileGitHubRepositoryUseCase {
             return Ok(repository);
         }
 
+        if let Some(autolink_references) = &spec.autolink_references {
+            if repository.autolink_references != spec.autolink_references {
+                log::info!("autolink references needs to be updated");
+                self.github_service
+                    .update_autolink_references(owner, name, autolink_references.clone())
+                    .await
+                    .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+            }
+        }
+
         Ok(repository)
     }
 
@@ -68,7 +78,7 @@ impl ReconcileGitHubRepositoryUseCase {
                     .github_service
                     .create_repository(owner, name)
                     .await
-                    .map_err(|e| ReconcileGitHubRepositoryUseCaseError::Error)?;
+                    .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
                 recorder
                     .publish(Event {
                         action: "repository-created".into(),
@@ -81,7 +91,7 @@ impl ReconcileGitHubRepositoryUseCase {
                     .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
                 repository
             }
-            Err(e) => return Err(ReconcileGitHubRepositoryUseCaseError::Error),
+            Err(_) => return Err(ReconcileGitHubRepositoryUseCaseError::Error),
         })
     }
 }
