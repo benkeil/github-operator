@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use github_operator::adapter::octocrab_github_service::OctocrabGitHubService;
-use github_operator::domain::port::github_service::GitHubService;
+use github_operator::domain::service::github_service::GitHubService;
 use github_operator::extensions::OctocrabExtensoin;
 
 /// CLI to manage GitHub repositories
@@ -47,10 +47,11 @@ async fn main() {
     let github_service = OctocrabGitHubService::new(github_client);
 
     match args.command {
-        Commands::Get { repository } => {
-            let (owner, name) = repository.split_once('/').unwrap();
-            println!("get {}/{}", owner, name);
-            if let Ok(github_repository) = github_service.get_repository(owner, name).await {
+        Commands::Get {
+            repository: ref full_name,
+        } => {
+            println!("get {}", full_name);
+            if let Ok(github_repository) = github_service.get_repository(full_name).await {
                 match args.output_format {
                     Some(OutputFormat::Json) => {
                         let json = serde_json::to_string_pretty(&github_repository).unwrap();

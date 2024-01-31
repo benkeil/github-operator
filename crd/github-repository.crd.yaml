@@ -21,21 +21,6 @@ spec:
         properties:
           spec:
             properties:
-              allow_auto_merge:
-                nullable: true
-                type: boolean
-              allow_merge_commit:
-                nullable: true
-                type: boolean
-              allow_rebase_merge:
-                nullable: true
-                type: boolean
-              allow_squash_merge:
-                nullable: true
-                type: boolean
-              allow_update_branch:
-                nullable: true
-                type: boolean
               autolink_references:
                 items:
                   properties:
@@ -52,57 +37,76 @@ spec:
                   type: object
                 nullable: true
                 type: array
-              delete_branch_on_merge:
-                nullable: true
-                type: boolean
               full_name:
                 type: string
-              security_and_analysis:
+              repository:
                 nullable: true
                 properties:
-                  dependabot_security_updates:
+                  allow_auto_merge:
+                    nullable: true
+                    type: boolean
+                  allow_merge_commit:
+                    nullable: true
+                    type: boolean
+                  allow_rebase_merge:
+                    nullable: true
+                    type: boolean
+                  allow_squash_merge:
+                    nullable: true
+                    type: boolean
+                  allow_update_branch:
+                    nullable: true
+                    type: boolean
+                  delete_branch_on_merge:
+                    nullable: true
+                    type: boolean
+                  security_and_analysis:
                     nullable: true
                     properties:
-                      status:
-                        enum:
-                        - enabled
-                        - disabled
-                        type: string
-                    required:
-                    - status
-                    type: object
-                  secret_scanning:
-                    nullable: true
-                    properties:
-                      status:
-                        enum:
-                        - enabled
-                        - disabled
-                        type: string
-                    required:
-                    - status
-                    type: object
-                  secret_scanning_push_protection:
-                    nullable: true
-                    properties:
-                      status:
-                        enum:
-                        - enabled
-                        - disabled
-                        type: string
-                    required:
-                    - status
-                    type: object
-                  secret_scanning_validity_checks:
-                    nullable: true
-                    properties:
-                      status:
-                        enum:
-                        - enabled
-                        - disabled
-                        type: string
-                    required:
-                    - status
+                      dependabot_security_updates:
+                        nullable: true
+                        properties:
+                          status:
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        required:
+                        - status
+                        type: object
+                      secret_scanning:
+                        nullable: true
+                        properties:
+                          status:
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        required:
+                        - status
+                        type: object
+                      secret_scanning_push_protection:
+                        nullable: true
+                        properties:
+                          status:
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        required:
+                        - status
+                        type: object
+                      secret_scanning_validity_checks:
+                        nullable: true
+                        properties:
+                          status:
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        required:
+                        - status
+                        type: object
                     type: object
                 type: object
             required:

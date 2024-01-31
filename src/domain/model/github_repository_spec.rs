@@ -1,10 +1,9 @@
-use crate::domain::model::repository::{
-    AutolinkReference, Repository, SecurityAndAnalysisResponse,
-};
 use garde::Validate;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::domain::model::repository::{AutolinkReference, RepositoryResponse};
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, Validate, JsonSchema, Default)]
 #[kube(
@@ -20,21 +19,7 @@ pub struct GitHubRepositorySpec {
     #[garde(skip)]
     pub full_name: String,
     #[garde(skip)]
-    pub delete_branch_on_merge: Option<bool>,
-    #[garde(skip)]
-    pub allow_auto_merge: Option<bool>,
-    #[garde(skip)]
-    pub allow_squash_merge: Option<bool>,
-    #[garde(skip)]
-    pub allow_merge_commit: Option<bool>,
-    #[garde(skip)]
-    pub allow_rebase_merge: Option<bool>,
-    #[garde(skip)]
-    pub allow_update_branch: Option<bool>,
-    #[garde(skip)]
-    pub security_and_analysis: Option<SecurityAndAnalysisResponse>,
-
-    // from another API
+    pub repository: Option<RepositoryResponse>,
     #[garde(skip)]
     pub autolink_references: Option<Vec<AutolinkReference>>,
 }

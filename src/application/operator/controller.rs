@@ -105,7 +105,7 @@ async fn update_status(
         "status": GitHubRepositoryStatus { }
     });
     api.patch_status(
-        repository.repository.full_name.as_str(),
+        repository.full_name.as_str(),
         &PatchParams::default(),
         &Patch::Merge(status),
     )
