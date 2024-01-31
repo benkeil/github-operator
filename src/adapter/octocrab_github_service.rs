@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use futures::future::join_all;
 use octocrab::Octocrab;
 
-use crate::domain::model::repository::{AutolinkReference, Repository, RepositoryResponse};
+use crate::domain::model::repository::{AutolinkReference, RepositoryResponse};
 use crate::domain::service::github_service::{GitHubService, GitHubServiceError};
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ impl OctocrabGitHubService {
 impl GitHubService for OctocrabGitHubService {
     async fn create_repository(
         &self,
-        full_name: &str,
+        _full_name: &str,
     ) -> Result<RepositoryResponse, GitHubServiceError> {
         todo!()
     }
@@ -73,7 +73,7 @@ impl GitHubService for OctocrabGitHubService {
             .await;
         match autolink_references {
             Ok(autolink_references) => Ok(autolink_references),
-            Err(e) => Ok(vec![]),
+            Err(_e) => Ok(vec![]),
         }
     }
 
@@ -104,7 +104,7 @@ impl GitHubService for OctocrabGitHubService {
         result
     }
 
-    async fn archive_repository(&self, full_name: &str) -> Result<(), GitHubServiceError> {
+    async fn archive_repository(&self, _full_name: &str) -> Result<(), GitHubServiceError> {
         Ok(())
     }
 }

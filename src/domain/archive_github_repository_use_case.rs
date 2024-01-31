@@ -1,6 +1,5 @@
-use crate::domain::model::github_repository_spec::GitHubRepository;
+use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 use crate::domain::service::github_service::GitHubService;
-use std::sync::Arc;
 
 pub struct ArchiveGitHubRepositoryUseCase {
     github_service: Box<dyn GitHubService + Send + Sync>,
@@ -13,11 +12,11 @@ impl ArchiveGitHubRepositoryUseCase {
 
     pub async fn execute(
         &self,
-        github_repository: Arc<GitHubRepository>,
+        spec: &GitHubRepositorySpec,
     ) -> Result<(), ArchiveGitHubRepositoryUseCaseError> {
-        log::info!("archive repository: {}", &github_repository.spec.full_name);
+        log::info!("archive repository: {}", &spec.full_name);
         self.github_service
-            .archive_repository(&github_repository.spec.full_name)
+            .archive_repository(&spec.full_name)
             .await
             .map_err(|_| ArchiveGitHubRepositoryUseCaseError::Error)
     }

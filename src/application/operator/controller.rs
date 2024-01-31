@@ -1,12 +1,11 @@
-use std::backtrace::Backtrace;
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::{StreamExt, TryFutureExt};
+use futures::StreamExt;
 use kube::api::{Patch, PatchParams};
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
-use kube::runtime::finalizer::{finalizer, Error, Event};
+use kube::runtime::finalizer::{finalizer, Event};
 use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource};
@@ -75,7 +74,7 @@ async fn reconcile(
                     }
                 }
                 Event::Cleanup(github_repository) => {
-                    match ctx.archive_use_case.execute(github_repository).await {
+                    match ctx.archive_use_case.execute(&github_repository.spec).await {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
                         Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
                     }
@@ -100,7 +99,7 @@ async fn update_status(
     repository: Repository,
     api: Api<GitHubRepository>,
 ) -> Result<(), ControllerError> {
-    let url = "".to_string();
+    let _url = "".to_string();
     let status = json!({
         "status": GitHubRepositoryStatus { }
     });

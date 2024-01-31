@@ -106,6 +106,6 @@ mod tests {
             allow_rebase_merge: Some(true),
             allow_update_branch: Some(true),
         };
-        assert_eq!(false, actual.differ_from_spec(&spec));
+        assert!(!actual.differ_from_spec(&spec));
     }
 }
