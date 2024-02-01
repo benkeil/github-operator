@@ -70,7 +70,10 @@ async fn reconcile(
                         .await
                     {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
-                        Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
+                        Err(e) => {
+                            log::error!("reconcile failed: {:?}", e);
+                            Ok(Action::requeue(Duration::from_secs(5)))
+                        }
                     }
                 }
                 Event::Cleanup(github_repository) => {
