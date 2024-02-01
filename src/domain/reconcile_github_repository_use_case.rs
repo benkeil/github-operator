@@ -2,7 +2,9 @@ use differ_from_spec::DifferFromSpec;
 use kube::runtime::events::{Event, EventType, Recorder};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
-use crate::domain::model::repository::RepositoryResponse;
+use crate::domain::model::repository::{
+    AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
+};
 use crate::domain::service::github_service::GitHubService;
 
 pub struct ReconcileGitHubRepositoryUseCase {
@@ -45,6 +47,7 @@ impl ReconcileGitHubRepositoryUseCase {
             }
         }
 
+        // TODO make always a call
         if let Some(spec_autolink_references) = &spec.autolink_references {
             let autolink_references = self
                 .github_service
@@ -52,22 +55,35 @@ impl ReconcileGitHubRepositoryUseCase {
                 .await
                 .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
             log::debug!("autolink_references: {:#?}", autolink_references);
-            if autolink_references.differ_from_spec(spec_autolink_references) {
-                log::info!("autolink references needs to be updated");
-                self.github_service
-                    .update_autolink_references(&spec.full_name, spec_autolink_references)
-                    .await
-                    .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
-                recorder
-                    .publish(Event {
-                        action: "autolink-references-updated".into(),
-                        reason: "Reconciling".into(),
-                        note: Some("Autolink references updated".into()),
-                        type_: EventType::Normal,
-                        secondary: None,
-                    })
-                    .await
-                    .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+
+            // TODO the key_prefix IS a unique key
+            // TODO the API should throw an error when I try to add a duplicate
+            // add references that are actually not present
+            for spec_autolink_reference in spec_autolink_references {
+                if !autolink_references
+                    .iter()
+                    .any(|autolink_reference| spec_autolink_reference == autolink_reference)
+                {
+                    log::info!("add autolink reference: {:#?}", spec_autolink_reference);
+                    self.github_service
+                        .add_autolink_references(&spec.full_name, spec_autolink_reference)
+                        .await
+                        .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+                }
+            }
+
+            // delete references that are no longer in the spec
+            for ref autolink_reference in autolink_references {
+                if !spec_autolink_references
+                    .iter()
+                    .any(|spec_autolink_reference| spec_autolink_reference == autolink_reference)
+                {
+                    log::info!("delete autolink reference: {:#?}", autolink_reference);
+                    self.github_service
+                        .delete_autolink_references(&spec.full_name, autolink_reference.id)
+                        .await
+                        .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
+                }
             }
         }
 
@@ -107,4 +123,12 @@ impl ReconcileGitHubRepositoryUseCase {
 
 pub enum ReconcileGitHubRepositoryUseCaseError {
     Error,
+}
+
+impl PartialEq<AutolinkReferenceResponse> for AutolinkReference {
+    fn eq(&self, other: &AutolinkReferenceResponse) -> bool {
+        self.is_alphanumeric == other.is_alphanumeric
+            && self.key_prefix == other.key_prefix
+            && self.url_template == other.url_template
+    }
 }

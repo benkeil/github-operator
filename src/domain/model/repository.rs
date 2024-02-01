@@ -45,8 +45,15 @@ pub enum Status {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
-//#[serde(rename_all = "camelCase")]
 pub struct AutolinkReference {
+    pub key_prefix: String,
+    pub url_template: String,
+    pub is_alphanumeric: bool,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
+pub struct AutolinkReferenceResponse {
+    pub id: u64,
     pub key_prefix: String,
     pub url_template: String,
     pub is_alphanumeric: bool,

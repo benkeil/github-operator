@@ -1,8 +1,9 @@
 use async_trait::async_trait;
-use futures::future::join_all;
 use octocrab::Octocrab;
 
-use crate::domain::model::repository::{AutolinkReference, RepositoryResponse};
+use crate::domain::model::repository::{
+    AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
+};
 use crate::domain::service::github_service::{GitHubService, GitHubServiceError};
 
 #[derive(Clone)]
@@ -29,7 +30,7 @@ impl GitHubService for OctocrabGitHubService {
         &self,
         full_name: &str,
     ) -> Result<Option<RepositoryResponse>, GitHubServiceError> {
-        log::trace!("get_repository({})", full_name);
+        log::trace!("get_repository: {}", full_name);
         let repository: Result<RepositoryResponse, octocrab::Error> = self
             .octocrab
             .get(format!("/repos/{full_name}"), None::<&()>)
@@ -65,9 +66,9 @@ impl GitHubService for OctocrabGitHubService {
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<Vec<AutolinkReference>, GitHubServiceError> {
-        log::trace!("get_autolink_references({})", full_name);
-        let autolink_references: Result<Vec<AutolinkReference>, octocrab::Error> = self
+    ) -> Result<Vec<AutolinkReferenceResponse>, GitHubServiceError> {
+        log::trace!("get_autolink_references: {}", full_name);
+        let autolink_references: Result<Vec<AutolinkReferenceResponse>, octocrab::Error> = self
             .octocrab
             .get(format!("/repos/{full_name}/autolinks"), None::<&()>)
             .await;
@@ -77,31 +78,36 @@ impl GitHubService for OctocrabGitHubService {
         }
     }
 
-    async fn update_autolink_references(
+    async fn add_autolink_references(
         &self,
         full_name: &str,
-        autolink_references: &[AutolinkReference],
-    ) -> Result<Vec<AutolinkReference>, GitHubServiceError> {
-        // TODO: We need to handle each item step by step, not all at once (create, delete).
-        log::trace!("update_autolink_references({})", full_name);
-        let autolink_references_futures =
-            autolink_references
-                .iter()
-                .map(|autolink_reference| async move {
-                    let autolink: Result<AutolinkReference, octocrab::Error> = self
-                        .octocrab
-                        .post(
-                            format!("/repos/{full_name}/autolinks"),
-                            Some(&serde_json::json!(autolink_reference)),
-                        )
-                        .await;
-                    log::debug!("==> autolink: {:#?}", autolink);
-                    autolink.map_err(|_| GitHubServiceError::Error)
-                });
-        let results = join_all(autolink_references_futures).await;
-        let result: Result<Vec<AutolinkReference>, GitHubServiceError> =
-            results.into_iter().collect();
-        result
+        autolink_reference: &AutolinkReference,
+    ) -> Result<AutolinkReference, GitHubServiceError> {
+        log::trace!("add_autolink_references: {:#?}", &autolink_reference);
+        let autolink: Result<AutolinkReference, octocrab::Error> = self
+            .octocrab
+            .post(
+                format!("/repos/{full_name}/autolinks"),
+                Some(&serde_json::json!(autolink_reference)),
+            )
+            .await;
+        autolink.map_err(|_| GitHubServiceError::Error)
+    }
+
+    async fn delete_autolink_references(
+        &self,
+        full_name: &str,
+        autolink_reference_id: u64,
+    ) -> Result<(), GitHubServiceError> {
+        log::trace!("update_autolink_references: {:#?}", autolink_reference_id);
+        self.octocrab
+            ._delete(
+                format!("/repos/{full_name}/autolinks/{autolink_reference_id}"),
+                None::<&()>,
+            )
+            .await
+            .map(|_| ())
+            .map_err(|_| GitHubServiceError::Error)
     }
 
     async fn archive_repository(&self, _full_name: &str) -> Result<(), GitHubServiceError> {

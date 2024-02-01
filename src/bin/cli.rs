@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use github_operator::adapter::octocrab_github_service::OctocrabGitHubService;
-use github_operator::domain::service::github_service::GitHubService;
+use github_operator::domain::get_github_repository_use_case::GetGitHubRepositoryUseCase;
 use github_operator::extensions::OctocrabExtensoin;
 
 /// CLI to manage GitHub repositories
@@ -39,19 +39,20 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.cli.yaml", Default::default()).unwrap();
 
     let args = Cli::parse();
 
     let github_client = octocrab::OctocrabBuilder::from_env();
     let github_service = OctocrabGitHubService::new(github_client);
+    let get_github_repository_use_case = GetGitHubRepositoryUseCase::new(Box::new(github_service));
 
     match args.command {
         Commands::Get {
             repository: ref full_name,
         } => {
-            println!("get {}", full_name);
-            if let Ok(github_repository) = github_service.get_repository(full_name).await {
+            log::debug!("get {}", full_name);
+            if let Ok(github_repository) = get_github_repository_use_case.execute(full_name).await {
                 match args.output_format {
                     Some(OutputFormat::Json) => {
                         let json = serde_json::to_string_pretty(&github_repository).unwrap();
@@ -64,7 +65,7 @@ async fn main() {
             }
         }
         Commands::Set { repository } => {
-            println!("set {}", repository);
+            log::debug!("set {}", repository);
         }
     }
 }

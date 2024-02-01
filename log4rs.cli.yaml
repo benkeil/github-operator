@@ -1,0 +1,17 @@
+# https://docs.rs/log4rs/1.2.0/log4rs/
+refresh_rate: 30 seconds
+
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{d} {h({l:6})} {M}[{L}] - {m}{n}"
+
+root:
+  level: warn
+  appenders:
+    - stdout
+
+loggers:
+  github_operator:
+    level: warn

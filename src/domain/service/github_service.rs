@@ -2,7 +2,9 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 
-use crate::domain::model::repository::{AutolinkReference, RepositoryResponse};
+use crate::domain::model::repository::{
+    AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
+};
 
 #[async_trait]
 pub trait GitHubService {
@@ -22,12 +24,17 @@ pub trait GitHubService {
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<Vec<AutolinkReference>, GitHubServiceError>;
-    async fn update_autolink_references(
+    ) -> Result<Vec<AutolinkReferenceResponse>, GitHubServiceError>;
+    async fn add_autolink_references(
         &self,
         full_name: &str,
-        autolink_references: &[AutolinkReference],
-    ) -> Result<Vec<AutolinkReference>, GitHubServiceError>;
+        autolink_reference: &AutolinkReference,
+    ) -> Result<AutolinkReference, GitHubServiceError>;
+    async fn delete_autolink_references(
+        &self,
+        full_name: &str,
+        autolink_reference_id: u64,
+    ) -> Result<(), GitHubServiceError>;
     async fn archive_repository(&self, full_name: &str) -> Result<(), GitHubServiceError>;
 }
 

@@ -20,3 +20,6 @@ spec:
     - key_prefix: "DV-"
       url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
       is_alphanumeric: false
+    - key_prefix: "DV-"
+      url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
+      is_alphanumeric: false
