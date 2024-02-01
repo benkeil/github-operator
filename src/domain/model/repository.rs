@@ -1,4 +1,5 @@
 use differ_from_spec::DifferFromSpec;
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 use schemars::JsonSchema;
@@ -10,7 +11,7 @@ use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 pub struct Repository {
     pub full_name: String,
     pub repository: Option<RepositoryResponse>,
-    pub autolink_references: Option<Vec<AutolinkReference>>,
+    pub autolink_references: Option<HashSet<AutolinkReference>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec)]

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 use async_trait::async_trait;
@@ -24,7 +25,7 @@ pub trait GitHubService {
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<Vec<AutolinkReferenceResponse>, GitHubServiceError>;
+    ) -> Result<HashSet<AutolinkReferenceResponse>, GitHubServiceError>;
     async fn add_autolink_references(
         &self,
         full_name: &str,

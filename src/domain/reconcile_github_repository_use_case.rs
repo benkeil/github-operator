@@ -1,6 +1,5 @@
+use differ_from_spec::DifferFromSpec;
 use kube::runtime::events::{Event, EventType, Recorder};
-use std::error::Error;
-use thiserror::Error;
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 use crate::domain::model::repository::RepositoryResponse;
@@ -56,11 +55,8 @@ impl ReconcileGitHubRepositoryUseCase {
         // TODO the key_prefix IS a unique key
         // TODO the API should throw an error when I try to add a duplicate
         // add references that are actually not present
-        let spec_autolink_references = match &spec.autolink_references {
-            Some(spec_autolink_references) => spec_autolink_references,
-            None => Some(vec![]),
-        };
-        for spec_autolink_reference in spec_autolink_references {
+        let spec_autolink_references = spec.autolink_references.clone().unwrap_or_default();
+        for spec_autolink_reference in &spec_autolink_references {
             if !autolink_references.iter().any(|autolink_reference| {
                 spec_autolink_reference.key_prefix == autolink_reference.key_prefix
             }) {
@@ -114,16 +110,15 @@ impl ReconcileGitHubRepositoryUseCase {
                         secondary: None,
                     })
                     .await
-                    .map_err(|e| ReconcileGitHubRepositoryUseCaseError::Error)?;
+                    .map_err(|_| ReconcileGitHubRepositoryUseCaseError::Error)?;
                 repository
             }
-            Err(e) => return Err(ReconcileGitHubRepositoryUseCaseError::Error(e)),
+            Err(_) => return Err(ReconcileGitHubRepositoryUseCaseError::Error),
         })
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum ReconcileGitHubRepositoryUseCaseError {
-    #[error("ReconcileGitHubRepositoryUseCaseError: {0}")]
-    Error(dyn std::error::Error),
+    Error,
 }

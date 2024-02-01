@@ -6,20 +6,17 @@ metadata:
 spec:
   full_name: otto-ec/pdh-da_alarm-notification
   repository:
-    delete_branch_on_merge: true
+    delete_branch_on_merge: false
     security_and_analysis:
       secret_scanning:
-        status: enabled
+        status: disabled
       secret_scanning_push_protection:
-        status: enabled
+        status: disabled
       dependabot_security_updates:
-        status: enabled
+        status: disabled
       secret_scanning_validity_checks:
-        status: enabled
-  autolink_references:
-    - key_prefix: "DV-"
-      url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
-      is_alphanumeric: false
-    - key_prefix: "DV-"
-      url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
-      is_alphanumeric: false
+        status: disabled
+#  autolink_references:
+#    - key_prefix: "DV-"
+#      url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
+#      is_alphanumeric: false

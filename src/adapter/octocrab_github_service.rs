@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use octocrab::Octocrab;
+use std::collections::HashSet;
 
 use crate::domain::model::repository::{
     AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
@@ -66,15 +67,15 @@ impl GitHubService for OctocrabGitHubService {
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<Vec<AutolinkReferenceResponse>, GitHubServiceError> {
+    ) -> Result<HashSet<AutolinkReferenceResponse>, GitHubServiceError> {
         log::trace!("get_autolink_references: {}", full_name);
-        let autolink_references: Result<Vec<AutolinkReferenceResponse>, octocrab::Error> = self
+        let autolink_references: Result<HashSet<AutolinkReferenceResponse>, octocrab::Error> = self
             .octocrab
             .get(format!("/repos/{full_name}/autolinks"), None::<&()>)
             .await;
         match autolink_references {
             Ok(autolink_references) => Ok(autolink_references),
-            Err(_e) => Ok(vec![]),
+            Err(_e) => Ok(HashSet::new()),
         }
     }
 
@@ -99,7 +100,7 @@ impl GitHubService for OctocrabGitHubService {
         full_name: &str,
         autolink_reference_id: u64,
     ) -> Result<(), GitHubServiceError> {
-        log::trace!("update_autolink_references: {:#?}", autolink_reference_id);
+        log::trace!("delete_autolink_references: {:#?}", autolink_reference_id);
         self.octocrab
             ._delete(
                 format!("/repos/{full_name}/autolinks/{autolink_reference_id}"),
