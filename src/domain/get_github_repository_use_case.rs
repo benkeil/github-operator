@@ -1,7 +1,6 @@
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 use crate::domain::model::repository::{AutolinkReference, AutolinkReferenceResponse};
 use crate::domain::service::github_service::GitHubService;
-use std::collections::HashSet;
 
 pub struct GetGitHubRepositoryUseCase {
     github_service: Box<dyn GitHubService + Send + Sync>,
@@ -33,7 +32,7 @@ impl GetGitHubRepositoryUseCase {
                     .map_err(|_| GetGitHubRepositoryUseCaseError::Error)?
                     .iter()
                     .map(|item| item.clone().into())
-                    .collect::<HashSet<AutolinkReference>>();
+                    .collect::<Vec<AutolinkReference>>();
                 let autolink_references = if autolink_references.is_empty() {
                     None
                 } else {
@@ -43,6 +42,7 @@ impl GetGitHubRepositoryUseCase {
                     full_name: full_name.into(),
                     repository: Some(repository),
                     autolink_references,
+                    permissions: None,
                 }))
             }
             Ok(None) => Ok(None),

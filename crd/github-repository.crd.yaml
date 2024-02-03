@@ -63,6 +63,17 @@ spec:
                   security_and_analysis:
                     nullable: true
                     properties:
+                      advanced_security:
+                        nullable: true
+                        properties:
+                          status:
+                            enum:
+                            - enabled
+                            - disabled
+                            type: string
+                        required:
+                        - status
+                        type: object
                       dependabot_security_updates:
                         nullable: true
                         properties:

@@ -2,9 +2,8 @@ use garde::Validate;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
-use crate::domain::model::repository::{AutolinkReference, RepositoryResponse};
+use crate::domain::model::repository::{AutolinkReference, Permissions, RepositoryResponse};
 
 #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, Validate, JsonSchema, Default)]
 #[kube(
@@ -22,7 +21,9 @@ pub struct GitHubRepositorySpec {
     #[garde(skip)]
     pub repository: Option<RepositoryResponse>,
     #[garde(skip)]
-    pub autolink_references: Option<HashSet<AutolinkReference>>,
+    pub autolink_references: Option<Vec<AutolinkReference>>,
+    #[garde(skip)]
+    pub permissions: Option<Permissions>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default, JsonSchema, PartialEq)]

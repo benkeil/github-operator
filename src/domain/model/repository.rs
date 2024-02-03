@@ -1,17 +1,20 @@
-use differ_from_spec::DifferFromSpec;
-use std::collections::HashSet;
 use std::fmt::Debug;
 
+use differ_from_spec::DifferFromSpec;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::model::github_repository_spec::GitHubRepositorySpec;
 
+pub trait AutoConfigureSpec {
+    fn auto_configure(&mut self);
+}
+
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
 pub struct Repository {
     pub full_name: String,
     pub repository: Option<RepositoryResponse>,
-    pub autolink_references: Option<HashSet<AutolinkReference>>,
+    pub autolink_references: Option<Vec<AutolinkReference>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec)]
@@ -25,12 +28,37 @@ pub struct RepositoryResponse {
     pub allow_update_branch: Option<bool>,
 }
 
+impl AutoConfigureSpec for RepositoryResponse {
+    /// Enable additional settings if necessary
+    fn auto_configure(&mut self) {
+        self.security_and_analysis.auto_configure();
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec)]
 pub struct SecurityAndAnalysisResponse {
+    pub advanced_security: Option<SecurityAndAnalysisStatusResponse>,
     pub secret_scanning: Option<SecurityAndAnalysisStatusResponse>,
     pub secret_scanning_push_protection: Option<SecurityAndAnalysisStatusResponse>,
     pub dependabot_security_updates: Option<SecurityAndAnalysisStatusResponse>,
     pub secret_scanning_validity_checks: Option<SecurityAndAnalysisStatusResponse>,
+}
+
+impl AutoConfigureSpec for Option<SecurityAndAnalysisResponse> {
+    fn auto_configure(&mut self) {
+        self.as_mut().map(|s| {
+            if let Some(SecurityAndAnalysisStatusResponse {
+                status: Status::Enabled,
+            }) = s.secret_scanning
+            {
+                log::info!("auto enabled advanced_security");
+                s.advanced_security = Some(SecurityAndAnalysisStatusResponse {
+                    status: Status::Enabled,
+                });
+            };
+            s
+        });
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec)]
@@ -50,6 +78,28 @@ pub struct AutolinkReference {
     pub key_prefix: String,
     pub url_template: String,
     pub is_alphanumeric: bool,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
+pub struct Permissions {
+    pub team: Option<Vec<TeamPermission>>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
+pub struct TeamPermission {
+    pub org: String,
+    pub team_slug: String,
+    pub permission: RepositoryPermission,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
+#[serde(rename_all = "lowercase")]
+pub enum RepositoryPermission {
+    Pull,
+    Triage,
+    Push,
+    Maintain,
+    Admin,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
