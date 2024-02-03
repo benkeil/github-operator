@@ -128,6 +128,7 @@ mod tests {
     fn differ_from_spec() {
         let spec = super::RepositoryResponse {
             security_and_analysis: Some(super::SecurityAndAnalysisResponse {
+                advanced_security: None,
                 secret_scanning: Some(super::SecurityAndAnalysisStatusResponse {
                     status: super::Status::Enabled,
                 }),
@@ -144,6 +145,9 @@ mod tests {
         };
         let actual = super::RepositoryResponse {
             security_and_analysis: Some(super::SecurityAndAnalysisResponse {
+                advanced_security: Some(super::SecurityAndAnalysisStatusResponse {
+                    status: super::Status::Enabled,
+                }),
                 secret_scanning: Some(super::SecurityAndAnalysisStatusResponse {
                     status: super::Status::Enabled,
                 }),
