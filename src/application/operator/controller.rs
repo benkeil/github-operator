@@ -2,19 +2,22 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures::StreamExt;
-use kube::api::{Patch, PatchParams};
+use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
+use k8s_openapi::chrono;
+use kube::api::{Patch, PatchParams, PostParams};
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event};
 use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
-use kube::{Api, Client, Resource};
+use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
 use crate::domain::archive_github_repository_use_case::ArchiveGitHubRepositoryUseCase;
 use crate::domain::model::github_repository_spec::{GitHubRepository, GitHubRepositoryStatus};
-use crate::domain::model::repository::Repository;
-use crate::domain::reconcile_github_repository_use_case::ReconcileGitHubRepositoryUseCase;
+use crate::domain::reconcile_github_repository_use_case::{
+    ReconcileGitHubRepositoryUseCase, ReconcileGitHubRepositoryUseCaseError,
+};
 use crate::extensions::DurationExtension;
 use crate::ControllerError;
 
@@ -69,9 +72,14 @@ async fn reconcile(
                         .execute(&github_repository.spec, recorder)
                         .await
                     {
-                        Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
+                        Ok(_) => {
+                            update_status(github_repository, &github_repository_api, None).await?;
+                            Ok(Action::requeue(Duration::from_minutes(1)))
+                        }
                         Err(e) => {
                             log::error!("reconcile failed: {:?}", e);
+                            update_status(github_repository, &github_repository_api, Some(e))
+                                .await?;
                             Ok(Action::requeue(Duration::from_secs(5)))
                         }
                     }
@@ -99,20 +107,50 @@ fn handle_errors(
 }
 
 async fn update_status(
-    repository: Repository,
-    api: Api<GitHubRepository>,
+    github_repository: Arc<GitHubRepository>,
+    api: &Api<GitHubRepository>,
+    e: Option<ReconcileGitHubRepositoryUseCaseError>,
 ) -> Result<(), ControllerError> {
-    let _url = "".to_string();
+    let name = github_repository.name_unchecked();
+    let ready = match e {
+        Some(_) => Condition {
+            type_: "Ready".into(),
+            status: "False".into(),
+            reason: "ReconcileFailed".into(),
+            message: "Reconcile failed".into(),
+            last_transition_time: Time(chrono::Utc::now()),
+            observed_generation: github_repository.metadata.generation,
+        },
+        None => Condition {
+            type_: "Ready".into(),
+            status: "True".into(),
+            reason: "ReconcileSucceed".into(),
+            message: "Reconcile succeed".into(),
+            last_transition_time: Time(chrono::Utc::now()),
+            observed_generation: github_repository.metadata.generation,
+        },
+    };
+    let conditions = vec![ready];
+    let healthy = match e {
+        Some(_) => Some(false),
+        None => Some(true),
+    };
     let status = json!({
-        "status": GitHubRepositoryStatus { }
+        "status": GitHubRepositoryStatus {
+            conditions,
+            healthy,
+        }
     });
-    api.patch_status(
-        repository.full_name.as_str(),
-        &PatchParams::default(),
-        &Patch::Merge(status),
-    )
-    .await
-    .map_err(|_| ControllerError::UseCaseError)?;
+    log::debug!("patching {} status with: {:#?}", name, status);
+    let a = api
+        .patch_status(
+            name.as_str(),
+            &PatchParams::default(),
+            &Patch::Merge(&status),
+        )
+        .await
+        .map_err(ControllerError::KubeError)?;
+    log::debug!("patched status: {:#?}", a);
     Ok(())
 }
 

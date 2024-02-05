@@ -8,8 +8,8 @@ spec:
   repository:
     delete_branch_on_merge: true
     security_and_analysis:
-#      advanced_security:
-#        status: enabled
+      advanced_security:
+        status: enabled
       secret_scanning:
         status: enabled
       secret_scanning_push_protection:
@@ -23,6 +23,9 @@ spec:
 #      - org: otto-ec
 #        team_slug: pdh-da
 #        permission: admin
+#  permissions:
+#    otto-ec/pdh-da: admin
+#    benkeil: admin
   autolink_references:
     - key_prefix: "DV-"
       url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"

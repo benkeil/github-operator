@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use differ_from_spec::DifferFromSpec;
 use schemars::JsonSchema;
@@ -80,6 +80,9 @@ pub struct AutolinkReference {
     pub is_alphanumeric: bool,
 }
 
+// https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repository-teams
+// https://docs.github.com/de/rest/collaborators/collaborators?apiVersion=2022-11-28
+// https://docs.github.com/en/rest/orgs/security-managers?apiVersion=2022-11-28#list-security-manager-teams
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
 pub struct Permissions {
     pub team: Option<Vec<TeamPermission>>,
@@ -89,17 +92,8 @@ pub struct Permissions {
 pub struct TeamPermission {
     pub org: String,
     pub team_slug: String,
-    pub permission: RepositoryPermission,
-}
-
-#[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]
-#[serde(rename_all = "lowercase")]
-pub enum RepositoryPermission {
-    Pull,
-    Triage,
-    Push,
-    Maintain,
-    Admin,
+    /// The permissions of team members regarding the repository. Must be one of `pull`, `triage`, `push`, `maintain`, `admin` or the name of an existing custom repository role within the organisation.
+    pub permission: String,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq, DifferFromSpec, Eq, Hash)]

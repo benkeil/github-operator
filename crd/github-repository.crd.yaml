@@ -39,6 +39,32 @@ spec:
                 type: array
               full_name:
                 type: string
+              permissions:
+                nullable: true
+                properties:
+                  team:
+                    items:
+                      properties:
+                        org:
+                          type: string
+                        permission:
+                          enum:
+                          - pull
+                          - triage
+                          - push
+                          - maintain
+                          - admin
+                          type: string
+                        team_slug:
+                          type: string
+                      required:
+                      - org
+                      - permission
+                      - team_slug
+                      type: object
+                    nullable: true
+                    type: array
+                type: object
               repository:
                 nullable: true
                 properties:
@@ -125,6 +151,39 @@ spec:
             type: object
           status:
             nullable: true
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      default: 0
+                      format: int64
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              healthy:
+                nullable: true
+                type: boolean
             type: object
         required:
         - spec
