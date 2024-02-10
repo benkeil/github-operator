@@ -13,11 +13,11 @@ impl DurationExtension for Duration {
     }
 }
 
-pub trait OctocrabExtensoin {
+pub trait OctocrabExtension {
     fn from_env() -> Octocrab;
 }
 
-impl OctocrabExtensoin
+impl OctocrabExtension
     for OctocrabBuilder<NoSvc, DefaultOctocrabBuilderConfig, NoAuth, NotLayerReady>
 {
     fn from_env() -> Octocrab {

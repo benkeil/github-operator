@@ -1,7 +1,7 @@
 use kube::runtime::events::{Event, EventType, Recorder};
 
+use crate::domain::model::autolink_reference::AutolinkReference;
 use crate::domain::service::github_service::GitHubService;
-use crate::domain::spec::autolink_reference_spec::AutolinkReference;
 use crate::ControllerError;
 
 pub struct DeleteAutolinkReferenceUseCase {

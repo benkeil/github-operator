@@ -15,8 +15,8 @@ use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
+use crate::domain::model::repository::{Repository, RepositoryStatus};
 use crate::domain::reconcile_repository_use_case::ReconcileRepositoryUseCase;
-use crate::domain::spec::repository_spec::{Repository, RepositoryStatus};
 use crate::extensions::DurationExtension;
 use crate::ControllerError;
 

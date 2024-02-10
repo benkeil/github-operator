@@ -9,11 +9,11 @@ use crate::controller::autolink_reference_controller::{self, AutolinkReferenceCo
 use crate::controller::repository_controller::{self, RepositoryControllerContext};
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
+use crate::domain::model::autolink_reference::AutolinkReference;
+use crate::domain::model::repository::Repository;
 use crate::domain::reconcile_autolink_reference_use_case::ReconcileAutolinkReferenceUseCase;
 use crate::domain::reconcile_repository_use_case::ReconcileRepositoryUseCase;
-use crate::domain::spec::autolink_reference_spec::AutolinkReference;
-use crate::domain::spec::repository_spec::Repository;
-use crate::extensions::OctocrabExtensoin;
+use crate::extensions::OctocrabExtension;
 
 mod adapter;
 mod controller;

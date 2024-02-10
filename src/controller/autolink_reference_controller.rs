@@ -15,8 +15,8 @@ use serde_json::json;
 
 use crate::controller::finalizer_name;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
+use crate::domain::model::autolink_reference::{AutolinkReference, AutolinkReferenceStatus};
 use crate::domain::reconcile_autolink_reference_use_case::ReconcileAutolinkReferenceUseCase;
-use crate::domain::spec::autolink_reference_spec::{AutolinkReference, AutolinkReferenceStatus};
 use crate::extensions::DurationExtension;
 use crate::ControllerError;
 

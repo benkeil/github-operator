@@ -1,11 +1,10 @@
-use crate::domain::model::AutoConfigureSpec;
-use crate::ControllerError;
 use differ_from_spec::DifferFromSpec;
 use kube::runtime::events::{Event, EventType, Recorder};
 
-use crate::domain::model::repository::RepositoryResponse;
+use crate::domain::model::repository::{RepositoryResponse, RepositorySpec};
+use crate::domain::model::AutoConfigureSpec;
 use crate::domain::service::github_service::GitHubService;
-use crate::domain::spec::repository_spec::RepositorySpec;
+use crate::ControllerError;
 
 pub struct ReconcileRepositoryUseCase {
     github_service: Box<dyn GitHubService + Send + Sync>,

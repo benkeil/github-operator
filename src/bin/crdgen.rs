@@ -1,5 +1,5 @@
-use github_operator::domain::spec::autolink_reference_spec::AutolinkReference;
-use github_operator::domain::spec::repository_spec::Repository;
+use github_operator::domain::model::autolink_reference::AutolinkReference;
+use github_operator::domain::model::repository::Repository;
 use kube::CustomResourceExt;
 
 fn main() {

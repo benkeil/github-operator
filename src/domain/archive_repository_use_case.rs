@@ -1,5 +1,5 @@
+use crate::domain::model::repository::RepositorySpec;
 use crate::domain::service::github_service::GitHubService;
-use crate::domain::spec::repository_spec::RepositorySpec;
 use crate::ControllerError;
 
 pub struct ArchiveRepositoryUseCase {

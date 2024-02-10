@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 use github_operator::adapter::octocrab_github_service::OctocrabGitHubService;
 use github_operator::domain::get_repository_use_case::GetRepositoryUseCase;
-use github_operator::extensions::OctocrabExtensoin;
+use github_operator::extensions::OctocrabExtension;
 
 /// CLI to manage GitHub repositories
 #[derive(Debug, Parser)] // requires `derive` feature

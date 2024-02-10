@@ -5,7 +5,6 @@ pub mod model;
 pub mod reconcile_autolink_reference_use_case;
 pub mod reconcile_repository_use_case;
 pub mod service;
-pub mod spec;
 
 pub fn conditions_schema(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
     serde_json::from_value(serde_json::json!({

@@ -1,9 +1,10 @@
 use differ_from_spec::DifferFromSpec;
 use kube::runtime::events::{Event, EventType, Recorder};
 
-use crate::domain::model::autolink_reference::AutolinkReferenceRequest;
+use crate::domain::model::autolink_reference::{
+    AutolinkReference, AutolinkReferenceRequest, AutolinkReferenceStatus,
+};
 use crate::domain::service::github_service::GitHubService;
-use crate::domain::spec::autolink_reference_spec::{AutolinkReference, AutolinkReferenceStatus};
 use crate::ControllerError;
 
 pub struct ReconcileAutolinkReferenceUseCase {
