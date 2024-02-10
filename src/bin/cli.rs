@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use github_operator::adapter::octocrab_github_service::OctocrabGitHubService;
-use github_operator::domain::get_github_repository_use_case::GetGitHubRepositoryUseCase;
+use github_operator::domain::get_repository_use_case::GetRepositoryUseCase;
 use github_operator::extensions::OctocrabExtensoin;
 
 /// CLI to manage GitHub repositories
@@ -45,7 +45,7 @@ async fn main() {
 
     let github_client = octocrab::OctocrabBuilder::from_env();
     let github_service = OctocrabGitHubService::new(github_client);
-    let get_github_repository_use_case = GetGitHubRepositoryUseCase::new(Box::new(github_service));
+    let get_github_repository_use_case = GetRepositoryUseCase::new(Box::new(github_service));
 
     match args.command {
         Commands::Get {

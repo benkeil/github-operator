@@ -11,7 +11,7 @@ import (
 ]
 #namespace: "pdh-da"
 
-_repositories: [...#GitHubRepository]
+_repositories: [...#Repository]
 _repositories: [for repo in #repositories {
 	{
 		metadata: {
@@ -19,34 +19,32 @@ _repositories: [for repo in #repositories {
 			namespace: #namespace
 		}
 		spec: {
-			full_name: repo
-			repository: {
-				delete_branch_on_merge: true
+			full_name:              repo
+			delete_branch_on_merge: true
+			security_and_analysis: {
+				advanced_security: {
+					stauts: "enabled"
+				}
 				security_and_analysis: {
-					advanced_security: {
-						stauts: "enabled"
-					}
-					security_and_analysis: {
-						stauts: "enabled"
-					}
-					secret_scanning_push_protection: {
-						stauts: "enabled"
-					}
-					dependabot_security_updates: {
-						stauts: "enabled"
-					}
-					secret_scanning_validity_checks: {
-						stauts: "enabled"
-					}
+					stauts: "enabled"
+				}
+				secret_scanning_push_protection: {
+					stauts: "enabled"
+				}
+				dependabot_security_updates: {
+					stauts: "enabled"
+				}
+				secret_scanning_validity_checks: {
+					stauts: "enabled"
 				}
 			}
-			autolink_references: [
-				{
-					key_prefix:      "DV-"
-					url_template:    "https://otto-eg.atlassian.net/browse/DV-<num>"
-					is_alphanumeric: false
-				},
-			]
+			//			autolink_references: [
+			//				{
+			//					key_prefix:      "DV-"
+			//					url_template:    "https://otto-eg.atlassian.net/browse/DV-<num>"
+			//					is_alphanumeric: false
+			//				},
+			//			]
 		}
 	}
 }]

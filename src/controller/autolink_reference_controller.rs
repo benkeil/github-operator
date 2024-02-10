@@ -4,7 +4,7 @@ use std::time::Duration;
 use futures::StreamExt;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
 use k8s_openapi::chrono;
-use kube::api::{Patch, PatchParams, PostParams};
+use kube::api::{Patch, PatchParams};
 use kube::runtime::controller::Action;
 use kube::runtime::events::Recorder;
 use kube::runtime::finalizer::{finalizer, Event};
@@ -13,17 +13,18 @@ use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
-use crate::domain::archive_github_repository_use_case::ArchiveGitHubRepositoryUseCase;
-use crate::domain::model::github_repository_spec::{GitHubRepository, GitHubRepositoryStatus};
-use crate::domain::reconcile_github_repository_use_case::{
-    ReconcileGitHubRepositoryUseCase, ReconcileGitHubRepositoryUseCaseError,
-};
+use crate::controller::finalizer_name;
+use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
+use crate::domain::reconcile_autolink_reference_use_case::ReconcileAutolinkReferenceUseCase;
+use crate::domain::spec::autolink_reference_spec::{AutolinkReference, AutolinkReferenceStatus};
 use crate::extensions::DurationExtension;
 use crate::ControllerError;
 
-pub async fn run(controller_context: ControllerContext) -> Result<(), ControllerError> {
+pub async fn run(
+    controller_context: AutolinkReferenceControllerContext,
+) -> Result<(), ControllerError> {
     Controller::new(
-        controller_context.github_repository_api.clone(),
+        controller_context.autolink_reference_api.clone(),
         Config::default().any_semantic(),
     )
     .shutdown_on_signal()
@@ -40,19 +41,19 @@ pub async fn run(controller_context: ControllerContext) -> Result<(), Controller
 }
 
 async fn reconcile(
-    github_repository: Arc<GitHubRepository>,
+    autolink_reference: Arc<AutolinkReference>,
     ctx: Arc<Context>,
 ) -> Result<Action, ControllerError> {
-    log::info!("reconcile: {:?}", github_repository.object_ref(&()));
+    log::info!("reconcile: {:?}", autolink_reference.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
-        "github-repository-controller".into(),
-        github_repository.object_ref(&()),
+        "autolink-reference-github-controller".into(),
+        autolink_reference.object_ref(&()),
     );
-    let github_repository_api = Api::<GitHubRepository>::namespaced(
+    let autolink_reference_api = Api::<AutolinkReference>::namespaced(
         ctx.client.clone(),
-        github_repository
+        autolink_reference
             .metadata
             .namespace
             .as_ref()
@@ -60,32 +61,47 @@ async fn reconcile(
     );
 
     finalizer(
-        &github_repository_api,
-        "github-repository-controller.platform.benkeil.de/cleanup",
-        github_repository,
+        &autolink_reference_api,
+        finalizer_name("autolink-reference").as_str(),
+        autolink_reference,
         |event| async {
             match event {
-                Event::Apply(github_repository) => {
-                    log::info!("object ref: {:?}", github_repository.object_ref(&()));
+                Event::Apply(autolink_reference) => {
+                    log::info!("object ref: {:?}", autolink_reference.object_ref(&()));
                     match ctx
                         .reconcile_use_case
-                        .execute(&github_repository.spec, recorder)
+                        .execute(&autolink_reference, recorder)
                         .await
                     {
-                        Ok(_) => {
-                            update_status(github_repository, &github_repository_api, None).await?;
+                        Ok(id) => {
+                            update_status(
+                                &autolink_reference_api,
+                                autolink_reference,
+                                Some(id),
+                                None,
+                            )
+                            .await?;
                             Ok(Action::requeue(Duration::from_minutes(1)))
                         }
                         Err(e) => {
                             log::error!("reconcile failed: {:?}", e);
-                            update_status(github_repository, &github_repository_api, Some(e))
-                                .await?;
+                            update_status(
+                                &autolink_reference_api,
+                                autolink_reference,
+                                None,
+                                Some(e),
+                            )
+                            .await?;
                             Ok(Action::requeue(Duration::from_secs(5)))
                         }
                     }
                 }
                 Event::Cleanup(github_repository) => {
-                    match ctx.archive_use_case.execute(&github_repository.spec).await {
+                    match ctx
+                        .delete_use_case
+                        .execute(&github_repository, recorder)
+                        .await
+                    {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
                         Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
                     }
@@ -98,7 +114,7 @@ async fn reconcile(
 }
 
 fn handle_errors(
-    _github_repository: Arc<GitHubRepository>,
+    _github_repository: Arc<AutolinkReference>,
     error: &ControllerError,
     _ctx: Arc<Context>,
 ) -> Action {
@@ -107,11 +123,12 @@ fn handle_errors(
 }
 
 async fn update_status(
-    github_repository: Arc<GitHubRepository>,
-    api: &Api<GitHubRepository>,
-    e: Option<ReconcileGitHubRepositoryUseCaseError>,
+    api: &Api<AutolinkReference>,
+    autolink_reference: Arc<AutolinkReference>,
+    id: Option<u32>,
+    e: Option<ControllerError>,
 ) -> Result<(), ControllerError> {
-    let name = github_repository.name_unchecked();
+    let name = autolink_reference.name_unchecked();
     let ready = match e {
         Some(_) => Condition {
             type_: "Ready".into(),
@@ -119,7 +136,7 @@ async fn update_status(
             reason: "ReconcileFailed".into(),
             message: "Reconcile failed".into(),
             last_transition_time: Time(chrono::Utc::now()),
-            observed_generation: github_repository.metadata.generation,
+            observed_generation: autolink_reference.metadata.generation,
         },
         None => Condition {
             type_: "Ready".into(),
@@ -127,7 +144,7 @@ async fn update_status(
             reason: "ReconcileSucceed".into(),
             message: "Reconcile succeed".into(),
             last_transition_time: Time(chrono::Utc::now()),
-            observed_generation: github_repository.metadata.generation,
+            observed_generation: autolink_reference.metadata.generation,
         },
     };
     let conditions = vec![ready];
@@ -136,50 +153,47 @@ async fn update_status(
         None => Some(true),
     };
     let status = json!({
-        "status": GitHubRepositoryStatus {
+        "status": AutolinkReferenceStatus {
             conditions,
             healthy,
+            id,
         }
     });
     log::debug!("patching {} status with: {:#?}", name, status);
-    let a = api
-        .patch_status(
-            name.as_str(),
-            &PatchParams::default(),
-            &Patch::Merge(&status),
-        )
-        .await
-        .map_err(ControllerError::KubeError)?;
-    log::debug!("patched status: {:#?}", a);
+    api.patch_status(
+        name.as_str(),
+        &PatchParams::default(),
+        &Patch::Merge(&status),
+    )
+    .await
+    .map_err(ControllerError::KubeError)?;
+
     Ok(())
 }
 
-pub struct ControllerContext {
+pub struct AutolinkReferenceControllerContext {
     /// Kubernetes client
     pub client: Client,
-    pub recorder: Recorder,
-    pub github_repository_api: Api<GitHubRepository>,
-    pub reconcile_use_case: ReconcileGitHubRepositoryUseCase,
-    pub archive_use_case: ArchiveGitHubRepositoryUseCase,
+    pub autolink_reference_api: Api<AutolinkReference>,
+    pub reconcile_use_case: ReconcileAutolinkReferenceUseCase,
+    pub delete_use_case: DeleteAutolinkReferenceUseCase,
 }
 
 pub struct Context {
     /// Kubernetes client
     pub client: Client,
-    pub recorder: Recorder,
-    pub github_repository_api: Api<GitHubRepository>,
-    pub reconcile_use_case: ReconcileGitHubRepositoryUseCase,
-    pub archive_use_case: ArchiveGitHubRepositoryUseCase,
+    pub autolink_reference_api: Api<AutolinkReference>,
+    pub reconcile_use_case: ReconcileAutolinkReferenceUseCase,
+    pub delete_use_case: DeleteAutolinkReferenceUseCase,
 }
 
-impl From<ControllerContext> for Arc<Context> {
-    fn from(controller_context: ControllerContext) -> Self {
+impl From<AutolinkReferenceControllerContext> for Arc<Context> {
+    fn from(controller_context: AutolinkReferenceControllerContext) -> Self {
         Arc::new(Context {
             client: controller_context.client,
-            recorder: controller_context.recorder,
-            github_repository_api: controller_context.github_repository_api,
+            autolink_reference_api: controller_context.autolink_reference_api,
             reconcile_use_case: controller_context.reconcile_use_case,
-            archive_use_case: controller_context.archive_use_case,
+            delete_use_case: controller_context.delete_use_case,
         })
     }
 }

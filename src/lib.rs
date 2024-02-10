@@ -28,21 +28,10 @@ pub enum ControllerError {
 
     #[error("CRD is not queryable; {0}. Is the CRD installed?")]
     CrdNotFound(kube::Error),
+
+    #[error("AlreadyExists")]
+    AlreadyExists,
+
+    #[error("NotFound")]
+    NotFound,
 }
-
-// impl std::fmt::Display for ControllerError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         // TODO use anyhow
-//         match self {
-//             ControllerError::FinalizerError(_) => f.write_str("FinalizerError"),
-//             ControllerError::KubeError(_) => f.write_str("KubeError"),
-//             ControllerError::SerializationError(_) => f.write_str("SerializationError"),
-//             ControllerError::IllegalDocument => f.write_str("IllegalDocument"),
-//             ControllerError::CrdNotFound(e) => {
-//                 f.write_str(format!("CRD is not queryable; {e:?}. Is the CRD installed?").as_str())
-//             }
-//         }
-//     }
-// }
-
-// impl std::error::Error for ControllerError {}

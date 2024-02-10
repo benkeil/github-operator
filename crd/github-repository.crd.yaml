@@ -1,149 +1,103 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: githubrepositories.platform.benkeil.de
+  name: repositories.github.platform.benkeil.de
 spec:
-  group: platform.benkeil.de
+  group: github.platform.benkeil.de
   names:
     categories: []
-    kind: GitHubRepository
-    plural: githubrepositories
+    kind: Repository
+    plural: repositories
     shortNames:
     - repo
-    singular: githubrepository
+    singular: repository
   scope: Namespaced
   versions:
   - additionalPrinterColumns: []
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for GitHubRepositorySpec via `CustomResource`
+        description: Auto-generated derived type for RepositorySpec via `CustomResource`
         properties:
           spec:
             properties:
-              autolink_references:
-                items:
-                  properties:
-                    is_alphanumeric:
-                      type: boolean
-                    key_prefix:
-                      type: string
-                    url_template:
-                      type: string
-                  required:
-                  - is_alphanumeric
-                  - key_prefix
-                  - url_template
-                  type: object
+              allow_auto_merge:
                 nullable: true
-                type: array
+                type: boolean
+              allow_merge_commit:
+                nullable: true
+                type: boolean
+              allow_rebase_merge:
+                nullable: true
+                type: boolean
+              allow_squash_merge:
+                nullable: true
+                type: boolean
+              allow_update_branch:
+                nullable: true
+                type: boolean
+              delete_branch_on_merge:
+                nullable: true
+                type: boolean
               full_name:
                 type: string
-              permissions:
+              security_and_analysis:
                 nullable: true
                 properties:
-                  team:
-                    items:
-                      properties:
-                        org:
-                          type: string
-                        permission:
-                          enum:
-                          - pull
-                          - triage
-                          - push
-                          - maintain
-                          - admin
-                          type: string
-                        team_slug:
-                          type: string
-                      required:
-                      - org
-                      - permission
-                      - team_slug
-                      type: object
-                    nullable: true
-                    type: array
-                type: object
-              repository:
-                nullable: true
-                properties:
-                  allow_auto_merge:
-                    nullable: true
-                    type: boolean
-                  allow_merge_commit:
-                    nullable: true
-                    type: boolean
-                  allow_rebase_merge:
-                    nullable: true
-                    type: boolean
-                  allow_squash_merge:
-                    nullable: true
-                    type: boolean
-                  allow_update_branch:
-                    nullable: true
-                    type: boolean
-                  delete_branch_on_merge:
-                    nullable: true
-                    type: boolean
-                  security_and_analysis:
+                  advanced_security:
                     nullable: true
                     properties:
-                      advanced_security:
-                        nullable: true
-                        properties:
-                          status:
-                            enum:
-                            - enabled
-                            - disabled
-                            type: string
-                        required:
-                        - status
-                        type: object
-                      dependabot_security_updates:
-                        nullable: true
-                        properties:
-                          status:
-                            enum:
-                            - enabled
-                            - disabled
-                            type: string
-                        required:
-                        - status
-                        type: object
-                      secret_scanning:
-                        nullable: true
-                        properties:
-                          status:
-                            enum:
-                            - enabled
-                            - disabled
-                            type: string
-                        required:
-                        - status
-                        type: object
-                      secret_scanning_push_protection:
-                        nullable: true
-                        properties:
-                          status:
-                            enum:
-                            - enabled
-                            - disabled
-                            type: string
-                        required:
-                        - status
-                        type: object
-                      secret_scanning_validity_checks:
-                        nullable: true
-                        properties:
-                          status:
-                            enum:
-                            - enabled
-                            - disabled
-                            type: string
-                        required:
-                        - status
-                        type: object
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  dependabot_security_updates:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning_push_protection:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning_validity_checks:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
                     type: object
                 type: object
             required:
@@ -187,7 +141,94 @@ spec:
             type: object
         required:
         - spec
-        title: GitHubRepository
+        title: Repository
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: autolinkreferences.github.platform.benkeil.de
+spec:
+  group: github.platform.benkeil.de
+  names:
+    categories: []
+    kind: AutolinkReference
+    plural: autolinkreferences
+    shortNames: []
+    singular: autolinkreference
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for AutolinkReferenceSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              full_name:
+                type: string
+              is_alphanumeric:
+                type: boolean
+              key_prefix:
+                type: string
+              url_template:
+                type: string
+            required:
+            - full_name
+            - is_alphanumeric
+            - key_prefix
+            - url_template
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      default: 0
+                      format: int64
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              healthy:
+                nullable: true
+                type: boolean
+              id:
+                format: uint32
+                minimum: 0.0
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: AutolinkReference
         type: object
     served: true
     storage: true

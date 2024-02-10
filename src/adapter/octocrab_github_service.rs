@@ -1,11 +1,12 @@
 use async_trait::async_trait;
-use octocrab::Octocrab;
-use std::collections::HashSet;
+use octocrab::{Error, GitHubError, Octocrab};
 
-use crate::domain::model::repository::{
-    AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
+use crate::domain::model::autolink_reference::{
+    AutolinkReferenceRequest, AutolinkReferenceResponse,
 };
-use crate::domain::service::github_service::{GitHubService, GitHubServiceError};
+use crate::domain::model::repository::RepositoryResponse;
+use crate::domain::service::github_service::GitHubService;
+use crate::ControllerError;
 
 #[derive(Clone)]
 pub struct OctocrabGitHubService {
@@ -23,14 +24,14 @@ impl GitHubService for OctocrabGitHubService {
     async fn create_repository(
         &self,
         _full_name: &str,
-    ) -> Result<RepositoryResponse, GitHubServiceError> {
+    ) -> Result<RepositoryResponse, ControllerError> {
         todo!()
     }
 
     async fn get_repository(
         &self,
         full_name: &str,
-    ) -> Result<Option<RepositoryResponse>, GitHubServiceError> {
+    ) -> Result<Option<RepositoryResponse>, ControllerError> {
         log::trace!("get_repository: {}", full_name);
         let repository: Result<RepositoryResponse, octocrab::Error> = self
             .octocrab
@@ -39,6 +40,7 @@ impl GitHubService for OctocrabGitHubService {
         match repository {
             Ok(repository) => Ok(Some(repository)),
             Err(e) => {
+                // TODO: handle 404
                 log::error!("get_repository error: {:#?}", e);
                 Ok(None)
             }
@@ -49,7 +51,7 @@ impl GitHubService for OctocrabGitHubService {
         &self,
         full_name: &str,
         repository: &RepositoryResponse,
-    ) -> Result<RepositoryResponse, GitHubServiceError> {
+    ) -> Result<RepositoryResponse, ControllerError> {
         log::trace!("update_repository: {:#?}", &serde_json::json!(repository));
         let repository: Result<RepositoryResponse, octocrab::Error> = self
             .octocrab
@@ -59,47 +61,75 @@ impl GitHubService for OctocrabGitHubService {
             )
             .await;
         log::debug!("repository: {:#?}", repository);
-        self.get_repository(full_name)
+        let repository = self
+            .get_repository(full_name)
             .await
-            .map(|r| r.ok_or(GitHubServiceError::Error))?
+            .map(|response| response.expect("repository should be existent"))?;
+        Ok(repository)
     }
 
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<HashSet<AutolinkReferenceResponse>, GitHubServiceError> {
+    ) -> Result<Vec<AutolinkReferenceResponse>, ControllerError> {
         log::trace!("get_autolink_references: {}", full_name);
-        let autolink_references: Result<HashSet<AutolinkReferenceResponse>, octocrab::Error> = self
+        let autolink_references: Result<Vec<AutolinkReferenceResponse>, octocrab::Error> = self
             .octocrab
             .get(format!("/repos/{full_name}/autolinks"), None::<&()>)
             .await;
         match autolink_references {
             Ok(autolink_references) => Ok(autolink_references),
-            Err(_e) => Ok(HashSet::new()),
+            Err(_e) => Ok(vec![]),
         }
     }
 
-    async fn add_autolink_references(
+    async fn get_autolink_reference(
         &self,
         full_name: &str,
-        autolink_reference: &AutolinkReference,
-    ) -> Result<AutolinkReference, GitHubServiceError> {
-        log::trace!("add_autolink_references: {:#?}", &autolink_reference);
-        let autolink: Result<AutolinkReference, octocrab::Error> = self
+        id: &u32,
+    ) -> Result<AutolinkReferenceResponse, ControllerError> {
+        log::trace!("get_autolink_reference: {}/{}", full_name, id);
+        let autolink_reference: Result<AutolinkReferenceResponse, octocrab::Error> = self
+            .octocrab
+            .get(format!("/repos/{full_name}/autolinks/{id}"), None::<&()>)
+            .await;
+        autolink_reference.map_err(ControllerError::GitHubError)
+    }
+
+    async fn add_autolink_reference(
+        &self,
+        full_name: &str,
+        autolink_reference: &AutolinkReferenceRequest,
+    ) -> Result<AutolinkReferenceResponse, ControllerError> {
+        log::trace!("add_autolink_reference: {:#?}", &autolink_reference);
+        let autolink: Result<AutolinkReferenceResponse, octocrab::Error> = self
             .octocrab
             .post(
                 format!("/repos/{full_name}/autolinks"),
                 Some(&serde_json::json!(autolink_reference)),
             )
             .await;
-        autolink.map_err(|_| GitHubServiceError::Error)
+        // TODO junge junge...
+        if let Err(octocrab::Error::GitHub { source, .. }) = &autolink {
+            if let Some(errors) = &source.errors {
+                if errors.len() == 1 {
+                    if let Some(message) = errors[0].get("code") {
+                        if message == "already_exists" {
+                            return Err(ControllerError::AlreadyExists);
+                        }
+                    }
+                }
+            }
+            log::error!("{:#?}", source);
+        }
+        autolink.map_err(ControllerError::GitHubError)
     }
 
     async fn delete_autolink_references(
         &self,
         full_name: &str,
-        autolink_reference_id: u64,
-    ) -> Result<(), GitHubServiceError> {
+        autolink_reference_id: &u32,
+    ) -> Result<(), ControllerError> {
         log::trace!("delete_autolink_references: {:#?}", autolink_reference_id);
         self.octocrab
             ._delete(
@@ -108,10 +138,34 @@ impl GitHubService for OctocrabGitHubService {
             )
             .await
             .map(|_| ())
-            .map_err(|_| GitHubServiceError::Error)
+            .map_err(ControllerError::GitHubError)
     }
 
-    async fn archive_repository(&self, _full_name: &str) -> Result<(), GitHubServiceError> {
+    async fn archive_repository(&self, _full_name: &str) -> Result<(), ControllerError> {
         Ok(())
+    }
+}
+
+fn map_octocrab_error<T>(result: Result<T, octocrab::Error>) -> Result<T, ControllerError> {
+    match result {
+        Ok(result) => Ok(result),
+        Err(Error::GitHub {
+            source:
+                GitHubError {
+                    errors: Some(errors),
+                    ..
+                },
+            ..
+        }) => {
+            if errors.len() == 1 {
+                if let Some(serde_json::Value::String(message)) = errors[0].get("code") {
+                    if message == "already_exists" {
+                        return Err(ControllerError::AlreadyExists);
+                    }
+                }
+            }
+            Err(ControllerError::GitHubError(source))
+        }
+        Err(e) => Err(ControllerError::GitHubError(e)),
     }
 }

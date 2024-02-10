@@ -1,46 +1,44 @@
-use std::collections::HashSet;
-use std::fmt::Debug;
-
 use async_trait::async_trait;
 
-use crate::domain::model::repository::{
-    AutolinkReference, AutolinkReferenceResponse, RepositoryResponse,
+use crate::domain::model::autolink_reference::{
+    AutolinkReferenceRequest, AutolinkReferenceResponse,
 };
+use crate::domain::model::repository::RepositoryResponse;
+use crate::ControllerError;
 
 #[async_trait]
 pub trait GitHubService {
     async fn create_repository(
         &self,
         full_name: &str,
-    ) -> Result<RepositoryResponse, GitHubServiceError>;
+    ) -> Result<RepositoryResponse, ControllerError>;
     async fn get_repository(
         &self,
         full_name: &str,
-    ) -> Result<Option<RepositoryResponse>, GitHubServiceError>;
+    ) -> Result<Option<RepositoryResponse>, ControllerError>;
     async fn update_repository(
         &self,
         full_name: &str,
         repository: &RepositoryResponse,
-    ) -> Result<RepositoryResponse, GitHubServiceError>;
+    ) -> Result<RepositoryResponse, ControllerError>;
     async fn get_autolink_references(
         &self,
         full_name: &str,
-    ) -> Result<HashSet<AutolinkReferenceResponse>, GitHubServiceError>;
-    async fn add_autolink_references(
+    ) -> Result<Vec<AutolinkReferenceResponse>, ControllerError>;
+    async fn get_autolink_reference(
         &self,
         full_name: &str,
-        autolink_reference: &AutolinkReference,
-    ) -> Result<AutolinkReference, GitHubServiceError>;
+        id: &u32,
+    ) -> Result<AutolinkReferenceResponse, ControllerError>;
+    async fn add_autolink_reference(
+        &self,
+        full_name: &str,
+        autolink_reference: &AutolinkReferenceRequest,
+    ) -> Result<AutolinkReferenceResponse, ControllerError>;
     async fn delete_autolink_references(
         &self,
         full_name: &str,
-        autolink_reference_id: u64,
-    ) -> Result<(), GitHubServiceError>;
-    async fn archive_repository(&self, full_name: &str) -> Result<(), GitHubServiceError>;
-}
-
-#[derive(PartialEq, Debug)]
-pub enum GitHubServiceError {
-    Error,
-    NotFound,
+        autolink_reference_id: &u32,
+    ) -> Result<(), ControllerError>;
+    async fn archive_repository(&self, full_name: &str) -> Result<(), ControllerError>;
 }
