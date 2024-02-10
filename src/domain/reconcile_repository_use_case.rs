@@ -23,9 +23,10 @@ impl ReconcileRepositoryUseCase {
     ) -> Result<(), ControllerError> {
         log::info!("reconcile: {}", &spec.full_name);
 
-        // enable additional settings if necessary
         // TODO double clone
+        // enable additional settings if necessary
         let spec_repository: RepositoryResponse = spec.clone().auto_configure().into();
+
         let repository = self
             .get_or_create_repository(&spec.full_name, &recorder)
             .await?;
@@ -36,16 +37,7 @@ impl ReconcileRepositoryUseCase {
             self.github_service
                 .update_repository(&spec.full_name, &spec_repository)
                 .await?;
-            recorder
-                .publish(Event {
-                    action: "repository-updated".into(),
-                    reason: "Reconciling".into(),
-                    note: Some("GitHub repository updated".into()),
-                    type_: EventType::Normal,
-                    secondary: None,
-                })
-                .await
-                .map_err(ControllerError::KubeError)?;
+            self.publish_updated_event(&recorder).await?;
         }
 
         Ok(())
@@ -61,19 +53,36 @@ impl ReconcileRepositoryUseCase {
             Ok(Some(repository)) => Ok(repository),
             Ok(None) => {
                 let repository = self.github_service.create_repository(full_name).await?;
-                recorder
-                    .publish(Event {
-                        action: "repository-created".into(),
-                        reason: "Reconciling".into(),
-                        note: Some("GitHub repository created".into()),
-                        type_: EventType::Normal,
-                        secondary: None,
-                    })
-                    .await
-                    .map_err(ControllerError::KubeError)?;
+                self.publish_created_event(recorder).await?;
                 Ok(repository)
             }
             Err(e) => Err(e),
         }
+    }
+
+    async fn publish_created_event(&self, recorder: &Recorder) -> Result<(), ControllerError> {
+        recorder
+            .publish(Event {
+                action: "repository-created".into(),
+                reason: "Reconciling".into(),
+                note: Some("GitHub repository created".into()),
+                type_: EventType::Normal,
+                secondary: None,
+            })
+            .await
+            .map_err(ControllerError::KubeError)
+    }
+
+    async fn publish_updated_event(&self, recorder: &Recorder) -> Result<(), ControllerError> {
+        recorder
+            .publish(Event {
+                action: "repository-updated".into(),
+                reason: "Reconciling".into(),
+                note: Some("GitHub repository updated".into()),
+                type_: EventType::Normal,
+                secondary: None,
+            })
+            .await
+            .map_err(ControllerError::KubeError)
     }
 }
