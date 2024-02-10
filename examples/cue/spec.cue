@@ -1,5 +1,7 @@
 package config
 
+#CR: #Repository | #AutolinkReference
+
 #Repository: {
 	apiVersion: "github.platform.benkeil.de/v1alpha1"
 	kind:       "Repository"
@@ -25,10 +27,17 @@ package config
 }
 
 #SecurityAndAnalysisStatus: {
-	stauts: "enabled" | "disabled"
+	status: "enabled" | "disabled"
 }
 
 #AutolinkReference: {
+	apiVersion: "github.platform.benkeil.de/v1alpha1"
+	kind:       "AutolinkReference"
+	metadata:   #Metadata
+	spec:       #AutolinkReferenceEntry
+}
+
+#AutolinkReferenceEntry: {
 	key_prefix:      string
 	url_template:    string
 	is_alphanumeric: bool

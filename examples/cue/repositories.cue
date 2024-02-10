@@ -1,52 +1,47 @@
 package config
 
-import (
-	"strings"
-	"encoding/yaml"
-)
+import "strings"
 
-#repositories: [
-	"otto-ec/pdh-da_alarm-notification",
-	"otto-ec/pdh-da_customer-popularity",
-]
-#namespace: "pdh-da"
-
-_repositories: [...#Repository]
-_repositories: [for repo in #repositories {
-	{
-		metadata: {
-			name:      strings.Split(repo, "_")[1]
-			namespace: #namespace
-		}
-		spec: {
-			full_name:              repo
-			delete_branch_on_merge: true
-			security_and_analysis: {
-				advanced_security: {
-					stauts: "enabled"
-				}
+_resources: [string]: [...#CR]
+_resources: {for repo in #repositories {
+	(strings.Split(repo, "_")[1]): [
+		#Repository & {
+			metadata: {
+				name:      strings.Split(repo, "_")[1]
+				namespace: #namespace
+			}
+			spec: {
+				full_name:              repo
+				delete_branch_on_merge: true
 				security_and_analysis: {
-					stauts: "enabled"
-				}
-				secret_scanning_push_protection: {
-					stauts: "enabled"
-				}
-				dependabot_security_updates: {
-					stauts: "enabled"
-				}
-				secret_scanning_validity_checks: {
-					stauts: "enabled"
+					advanced_security: {
+						status: "enabled"
+					}
+					security_and_analysis: {
+						status: "enabled"
+					}
+					secret_scanning_push_protection: {
+						status: "enabled"
+					}
+					dependabot_security_updates: {
+						status: "enabled"
+					}
+					secret_scanning_validity_checks: {
+						status: "enabled"
+					}
 				}
 			}
-			//			autolink_references: [
-			//				{
-			//					key_prefix:      "DV-"
-			//					url_template:    "https://otto-eg.atlassian.net/browse/DV-<num>"
-			//					is_alphanumeric: false
-			//				},
-			//			]
-		}
-	}
-}]
-
-specs: yaml.MarshalStream(_repositories)
+		},
+		#AutolinkReference & {
+			metadata: {
+				name:      strings.Split(repo, "_")[1]
+				namespace: #namespace
+			}
+			spec: {
+				key_prefix:      "DV-"
+				url_template:    "https://otto-eg.atlassian.net/browse/DV-<num>"
+				is_alphanumeric: false
+			}
+		},
+	]
+}}

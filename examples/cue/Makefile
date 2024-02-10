@@ -1,2 +1,5 @@
+clean:
+	cue cmd clean
+
 generate:
-	cue eval -e specs --out text
+	cue cmd generate
