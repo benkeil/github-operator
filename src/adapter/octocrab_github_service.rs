@@ -146,6 +146,20 @@ impl GitHubService for OctocrabGitHubService {
     }
 }
 
+// {
+//   "message": "string",
+//   "documentation_url": "string",
+//   "errors": [
+//     {
+//       "resource": "string",
+//       "field": "string",
+//       "message": "string",
+//       "code": "string",
+//       "index": 0,
+//       "value": "string"
+//     }
+//   ]
+// }
 fn map_octocrab_error<T>(result: Result<T, octocrab::Error>) -> Result<T, ControllerError> {
     match result {
         Ok(result) => Ok(result),
