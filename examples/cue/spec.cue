@@ -1,6 +1,6 @@
 package config
 
-#CR: #Repository | #AutolinkReference
+#CR: #Repository | #AutolinkReference | #RepositoryPermission
 
 #Repository: {
 	apiVersion: "github.platform.benkeil.de/v1alpha1"
@@ -41,4 +41,17 @@ package config
 	key_prefix:      string
 	url_template:    string
 	is_alphanumeric: bool
+}
+
+#RepositoryPermission: {
+	apiVersion: "github.platform.benkeil.de/v1alpha1"
+	kind:       "RepositoryPermission"
+	metadata:   #Metadata
+	spec:       #RepositoryPermissionSpec
+}
+
+#RepositoryPermissionSpec: {
+	full_name:      string
+	full_team_name: string
+	permission:     string
 }

@@ -4,12 +4,15 @@ import "strings"
 
 _resources: [string]: [...#CR]
 _resources: {for repo in #repositories {
+
+	let #metadata = {
+		name:      strings.Split(repo, "_")[1]
+		namespace: #namespace
+	}
+
 	(strings.Split(repo, "_")[1]): [
 		#Repository & {
-			metadata: {
-				name:      strings.Split(repo, "_")[1]
-				namespace: #namespace
-			}
+			metadata: #metadata
 			spec: {
 				full_name:              repo
 				delete_branch_on_merge: true
@@ -33,14 +36,19 @@ _resources: {for repo in #repositories {
 			}
 		},
 		#AutolinkReference & {
-			metadata: {
-				name:      strings.Split(repo, "_")[1]
-				namespace: #namespace
-			}
+			metadata: #metadata
 			spec: {
 				key_prefix:      "DV-"
 				url_template:    "https://otto-eg.atlassian.net/browse/DV-<num>"
 				is_alphanumeric: false
+			}
+		},
+		#RepositoryPermission & {
+			metadata: #metadata
+			spec: {
+				full_name:      "otto-ec/pdh-da_alarm-notification"
+				full_team_name: "otto-ec/pdh-distribution-analytics"
+				permission:     "admin"
 			}
 		},
 	]
