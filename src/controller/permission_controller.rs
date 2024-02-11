@@ -14,17 +14,15 @@ use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
 
 use crate::controller::finalizer_name;
-use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
-use crate::domain::model::autolink_reference::{AutolinkReference, AutolinkReferenceStatus};
-use crate::domain::reconcile_autolink_reference_use_case::ReconcileAutolinkReferenceUseCase;
+use crate::domain::delete_permissions_use_case::DeletePermissionUseCase;
+use crate::domain::model::permission::{RepositoryPermission, RepositoryPermissionStatus};
+use crate::domain::reconcile_permissions_use_case::ReconcilePermissionUseCase;
 use crate::extensions::DurationExtension;
 use crate::ControllerError;
 
-pub async fn run(
-    controller_context: AutolinkReferenceControllerContext,
-) -> Result<(), ControllerError> {
+pub async fn run(controller_context: PermissionControllerContext) -> Result<(), ControllerError> {
     Controller::new(
-        controller_context.autolink_reference_api.clone(),
+        controller_context.permission_api.clone(),
         Config::default().any_semantic(),
     )
     .shutdown_on_signal()
@@ -32,7 +30,7 @@ pub async fn run(
     .for_each(|res| async move {
         match res {
             Ok(o) => log::info!("reconciled {:?}", o),
-            Err(e) => log::warn!("reconcile failed: {}", e),
+            Err(e) => log::warn!("reconcile failed: {:#?}", e),
         }
     })
     .await;
@@ -41,65 +39,52 @@ pub async fn run(
 }
 
 async fn reconcile(
-    autolink_reference: Arc<AutolinkReference>,
-    ctx: Arc<AutolinkReferenceControllerContext>,
+    custom_resource: Arc<RepositoryPermission>,
+    ctx: Arc<PermissionControllerContext>,
 ) -> Result<Action, ControllerError> {
-    log::info!("reconcile: {:?}", autolink_reference.object_ref(&()));
+    log::info!("reconcile: {:?}", custom_resource.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
-        "autolink-reference-github-controller".into(),
-        autolink_reference.object_ref(&()),
+        "permission-github-controller".into(),
+        custom_resource.object_ref(&()),
     );
-    let autolink_reference_api = Api::<AutolinkReference>::namespaced(
+    let api = Api::<RepositoryPermission>::namespaced(
         ctx.client.clone(),
-        autolink_reference
-            .metadata
-            .namespace
+        custom_resource
+            .namespace()
             .as_ref()
             .ok_or_else(|| ControllerError::IllegalDocument)?,
     );
 
     finalizer(
-        &autolink_reference_api,
-        finalizer_name("autolink-reference").as_str(),
-        autolink_reference,
+        &api,
+        finalizer_name("permission").as_str(),
+        custom_resource,
         |event| async {
             match event {
-                Event::Apply(autolink_reference) => {
-                    log::info!("object ref: {:?}", autolink_reference.object_ref(&()));
+                Event::Apply(github_repository) => {
+                    log::info!("object ref: {:?}", github_repository.object_ref(&()));
                     match ctx
                         .reconcile_use_case
-                        .execute(&autolink_reference, recorder)
+                        .execute(&github_repository.spec, recorder)
                         .await
                     {
-                        Ok(id) => {
-                            update_status(
-                                &autolink_reference_api,
-                                autolink_reference,
-                                Some(id),
-                                None,
-                            )
-                            .await?;
+                        Ok(_) => {
+                            update_status(github_repository, &api, None).await?;
                             Ok(Action::requeue(Duration::from_minutes(1)))
                         }
                         Err(e) => {
                             log::error!("reconcile failed: {:?}", e);
-                            update_status(
-                                &autolink_reference_api,
-                                autolink_reference,
-                                None,
-                                Some(e),
-                            )
-                            .await?;
+                            update_status(github_repository, &api, Some(e)).await?;
                             Ok(Action::requeue(Duration::from_secs(5)))
                         }
                     }
                 }
-                Event::Cleanup(github_repository) => {
+                Event::Cleanup(permission) => {
                     match ctx
                         .delete_use_case
-                        .execute(&github_repository, recorder)
+                        .execute(&permission.spec, recorder)
                         .await
                     {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
@@ -114,21 +99,20 @@ async fn reconcile(
 }
 
 fn handle_errors(
-    _github_repository: Arc<AutolinkReference>,
+    _custom_resource: Arc<RepositoryPermission>,
     error: &ControllerError,
-    _ctx: Arc<AutolinkReferenceControllerContext>,
+    _ctx: Arc<PermissionControllerContext>,
 ) -> Action {
     log::warn!("reconcile failed: {:?}", error,);
     Action::requeue(Duration::from_secs(5))
 }
 
 async fn update_status(
-    api: &Api<AutolinkReference>,
-    autolink_reference: Arc<AutolinkReference>,
-    id: Option<u32>,
+    custom_resource: Arc<RepositoryPermission>,
+    api: &Api<RepositoryPermission>,
     e: Option<ControllerError>,
 ) -> Result<(), ControllerError> {
-    let name = autolink_reference.name_unchecked();
+    let name = custom_resource.name_unchecked();
     let ready = match e {
         Some(_) => Condition {
             type_: "Ready".into(),
@@ -136,7 +120,7 @@ async fn update_status(
             reason: "ReconcileFailed".into(),
             message: "Reconcile failed".into(),
             last_transition_time: Time(chrono::Utc::now()),
-            observed_generation: autolink_reference.metadata.generation,
+            observed_generation: custom_resource.metadata.generation,
         },
         None => Condition {
             type_: "Ready".into(),
@@ -144,7 +128,7 @@ async fn update_status(
             reason: "ReconcileSucceed".into(),
             message: "Reconcile succeed".into(),
             last_transition_time: Time(chrono::Utc::now()),
-            observed_generation: autolink_reference.metadata.generation,
+            observed_generation: custom_resource.metadata.generation,
         },
     };
     let conditions = vec![ready];
@@ -153,10 +137,9 @@ async fn update_status(
         None => Some(true),
     };
     let status = json!({
-        "status": AutolinkReferenceStatus {
+        "status": RepositoryPermissionStatus {
             conditions,
             healthy,
-            id,
         }
     });
     log::debug!("patching {} status with: {:#?}", name, status);
@@ -167,14 +150,13 @@ async fn update_status(
     )
     .await
     .map_err(ControllerError::KubeError)?;
-
     Ok(())
 }
 
-pub struct AutolinkReferenceControllerContext {
+pub struct PermissionControllerContext {
     /// Kubernetes client
     pub client: Client,
-    pub autolink_reference_api: Api<AutolinkReference>,
-    pub reconcile_use_case: ReconcileAutolinkReferenceUseCase,
-    pub delete_use_case: DeleteAutolinkReferenceUseCase,
+    pub permission_api: Api<RepositoryPermission>,
+    pub reconcile_use_case: ReconcilePermissionUseCase,
+    pub delete_use_case: DeletePermissionUseCase,
 }

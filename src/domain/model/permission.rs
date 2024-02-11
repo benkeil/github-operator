@@ -14,7 +14,8 @@ use crate::domain::conditions_schema;
     group = "github.platform.benkeil.de",
     version = "v1alpha1",
     kind = "RepositoryPermission",
-    namespaced
+    namespaced,
+    shortname = "permission"
 )]
 #[kube(status = "RepositoryPermissionStatus")]
 //#[serde(rename_all = "camelCase")]
