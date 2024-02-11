@@ -34,14 +34,13 @@ spec:
 #---
 #
 #apiVersion: github.platform.benkeil.de/v1alpha1
-#kind: RepositoryTeamPermission
+#kind: RepositoryPermission
 #metadata:
 #  name: alarm-notification
 #  namespace: pdh-da
 #spec:
 #  full_name: otto-ec/pdh-da_alarm-notification
-#  org: otto-ec
-#  team_slug: pdh-distribution-analytics
+#  full_team_name: pdh-distribution-analytics
 #  permission: admin
 
 # ADR: manually changed settings/resources that are not in the spec are ignored

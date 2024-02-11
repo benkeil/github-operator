@@ -4,6 +4,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub mod autolink_reference;
+pub mod permission;
 pub mod repository;
 
 #[derive(Deserialize, Serialize, Clone, Debug, JsonSchema, PartialEq)]
