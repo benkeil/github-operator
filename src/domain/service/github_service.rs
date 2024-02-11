@@ -11,6 +11,7 @@ pub trait GitHubService {
     async fn create_repository(
         &self,
         full_name: &str,
+        repository: &RepositoryResponse,
     ) -> Result<RepositoryResponse, ControllerError>;
     async fn get_repository(
         &self,
@@ -21,6 +22,7 @@ pub trait GitHubService {
         full_name: &str,
         repository: &RepositoryResponse,
     ) -> Result<RepositoryResponse, ControllerError>;
+    async fn archive_repository(&self, full_name: &str) -> Result<(), ControllerError>;
     async fn get_autolink_references(
         &self,
         full_name: &str,
@@ -40,5 +42,20 @@ pub trait GitHubService {
         full_name: &str,
         autolink_reference_id: &u32,
     ) -> Result<(), ControllerError>;
-    async fn archive_repository(&self, full_name: &str) -> Result<(), ControllerError>;
+    async fn get_team_permission(
+        &self,
+        full_name: &str,
+        full_team_name: &str,
+    ) -> Result<Option<String>, ControllerError>;
+    async fn update_team_permission(
+        &self,
+        full_name: &str,
+        full_team_name: &str,
+        role_name: &str,
+    ) -> Result<(), ControllerError>;
+    async fn delete_team_permission(
+        &self,
+        full_name: &str,
+        full_team_name: &str,
+    ) -> Result<(), ControllerError>;
 }

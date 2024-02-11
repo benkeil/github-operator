@@ -27,7 +27,7 @@ impl ReconcileRepositoryUseCase {
         let spec_repository: RepositoryResponse = spec.clone().auto_configure().into();
 
         let repository = self
-            .get_or_create_repository(&spec.full_name, &recorder)
+            .get_or_create_repository(&spec.full_name, &spec_repository, &recorder)
             .await?;
         log::debug!("repository: {:#?}", repository);
 
@@ -45,13 +45,17 @@ impl ReconcileRepositoryUseCase {
     async fn get_or_create_repository(
         &self,
         full_name: &str,
+        repository_spec: &RepositoryResponse,
         recorder: &Recorder,
     ) -> Result<RepositoryResponse, ControllerError> {
         let repository = self.github_service.get_repository(full_name).await;
         match repository {
             Ok(Some(repository)) => Ok(repository),
             Ok(None) => {
-                let repository = self.github_service.create_repository(full_name).await?;
+                let repository = self
+                    .github_service
+                    .create_repository(full_name, repository_spec)
+                    .await?;
                 self.publish_created_event(recorder).await?;
                 Ok(repository)
             }

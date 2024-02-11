@@ -29,7 +29,7 @@ tokio = { version = "1.35.1", features = ["rt", "rt-multi-thread", "macros"] }
 schemars = "0.8.13"
 backoff = "0.4.0"
 tracing = "0.1.37"
-garde = "0.17.0"
+garde = { version = "*", features = ["derive"] }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.112"
 serde_yaml = "0.9.30"
@@ -37,10 +37,9 @@ thiserror = "1.0.46"
 anyerror = "0.1"
 indoc = "2.0.4"
 itertools = "0.12.0"
-octocrab = "0.33.3"
 async-trait = "0.1.77"
 clap = { version = "4.4.18", features = ["derive"] }
 httpmock = "0.7.0"
-bevy_reflect = "0.12.1"
+ureq = { version = "*", features = ["json", "charset"] }
 #differ-from-spec = { git = "ssh://git@github.com/benkeil/rust-differ-from-spec.git", branch = "main" }
 differ-from-spec = { path = "../rust-differ-from-spec"}

@@ -4,7 +4,7 @@ use tokio::task::JoinSet;
 
 use github_operator::ControllerError;
 
-use crate::adapter::octocrab_github_service::OctocrabGitHubService;
+use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
 use crate::controller::repository_controller::{self, RepositoryControllerContext};
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
@@ -13,7 +13,6 @@ use crate::domain::model::autolink_reference::AutolinkReference;
 use crate::domain::model::repository::Repository;
 use crate::domain::reconcile_autolink_reference_use_case::ReconcileAutolinkReferenceUseCase;
 use crate::domain::reconcile_repository_use_case::ReconcileRepositoryUseCase;
-use crate::extensions::OctocrabExtension;
 
 mod adapter;
 mod controller;
@@ -43,8 +42,7 @@ async fn main() -> Result<(), ControllerError> {
         .await
         .map_err(ControllerError::CrdNotFound)?;
 
-    let github_client = octocrab::OctocrabBuilder::from_env();
-    let github_service = OctocrabGitHubService::new(github_client);
+    let github_service = HttpGithubService::from_env();
 
     let mut tasks = JoinSet::new();
 

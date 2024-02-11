@@ -41,7 +41,7 @@ spec:
 #spec:
 #  full_name: otto-ec/pdh-da_alarm-notification
 #  org: otto-ec
-#  team_slug: pdh-da
+#  team_slug: pdh-distribution-analytics
 #  permission: admin
 
 # ADR: manually changed settings/resources that are not in the spec are ignored

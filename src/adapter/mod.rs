@@ -1,1 +1,1 @@
-pub mod octocrab_github_service;
+pub mod http_github_service;

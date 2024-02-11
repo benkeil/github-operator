@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 
-use github_operator::adapter::octocrab_github_service::OctocrabGitHubService;
+use github_operator::adapter::http_github_service::HttpGithubService;
 use github_operator::domain::get_repository_use_case::GetRepositoryUseCase;
-use github_operator::extensions::OctocrabExtension;
 
 /// CLI to manage GitHub repositories
 #[derive(Debug, Parser)] // requires `derive` feature
@@ -43,8 +42,7 @@ async fn main() {
 
     let args = Cli::parse();
 
-    let github_client = octocrab::OctocrabBuilder::from_env();
-    let github_service = OctocrabGitHubService::new(github_client);
+    let github_service = HttpGithubService::from_env();
     let get_github_repository_use_case = GetRepositoryUseCase::new(Box::new(github_service));
 
     match args.command {
