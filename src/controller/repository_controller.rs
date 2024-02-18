@@ -13,6 +13,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
+use tracing::Instrument;
 
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
 use crate::domain::model::repository::{Repository, RepositoryStatus};
@@ -69,6 +70,7 @@ async fn reconcile(
                     match ctx
                         .reconcile_use_case
                         .execute(&github_repository.spec, recorder)
+                        .instrument(tracing::info_span!("apply"))
                         .await
                     {
                         Ok(_) => {
@@ -84,7 +86,12 @@ async fn reconcile(
                     }
                 }
                 Event::Cleanup(github_repository) => {
-                    match ctx.archive_use_case.execute(&github_repository.spec).await {
+                    match ctx
+                        .archive_use_case
+                        .execute(&github_repository.spec)
+                        .instrument(tracing::info_span!("cleanup"))
+                        .await
+                    {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
                         Err(_) => Ok(Action::requeue(Duration::from_secs(5))),
                     }
@@ -92,6 +99,7 @@ async fn reconcile(
             }
         },
     )
+    .instrument(tracing::info_span!("finalizer"))
     .await
     .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }

@@ -1,4 +1,8 @@
 use thiserror::Error;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 pub mod adapter;
 pub mod domain;
@@ -11,6 +15,9 @@ pub enum ControllerError {
 
     #[error("KubeError: {0}")]
     KubeError(kube::Error),
+
+    #[error("ConfigurationError")]
+    ConfigurationError,
 
     #[error("HttpError: {0}")]
     HttpError(Box<ureq::Error>),
@@ -37,4 +44,33 @@ pub enum ControllerError {
 
     #[error("NotFound")]
     NotFound,
+}
+
+pub fn init_logging() -> Result<(), ControllerError> {
+    let logging_format = std::env::var("APP_LOGGING_FORMAT")
+        .unwrap_or("plain".to_string())
+        .to_lowercase();
+
+    let (json, plain) = if logging_format == "json" {
+        (Some(tracing_subscriber::fmt::layer().json()), None)
+    } else {
+        (None, Some(tracing_subscriber::fmt::layer()))
+    };
+
+    let env_filter_layer = EnvFilter::builder()
+        .with_default_directive(LevelFilter::INFO.into())
+        .from_env_lossy()
+        .add_directive(
+            "github_operator=debug"
+                .parse()
+                .map_err(|_| ControllerError::ConfigurationError)?,
+        );
+
+    tracing_subscriber::registry()
+        .with(json)
+        .with(plain)
+        .with(env_filter_layer)
+        .init();
+
+    Ok(())
 }

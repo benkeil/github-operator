@@ -12,6 +12,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
+use tracing::Instrument;
 
 use crate::controller::finalizer_name;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
@@ -71,6 +72,7 @@ async fn reconcile(
                     match ctx
                         .reconcile_use_case
                         .execute(&autolink_reference, recorder)
+                        .instrument(tracing::info_span!("apply"))
                         .await
                     {
                         Ok(id) => {
@@ -100,6 +102,7 @@ async fn reconcile(
                     match ctx
                         .delete_use_case
                         .execute(&github_repository, recorder)
+                        .instrument(tracing::info_span!("cleanup"))
                         .await
                     {
                         Ok(_) => Ok(Action::requeue(Duration::from_minutes(1))),
@@ -109,6 +112,7 @@ async fn reconcile(
             }
         },
     )
+    .instrument(tracing::info_span!("finalizer"))
     .await
     .map_err(|e| ControllerError::FinalizerError(Box::new(e)))
 }

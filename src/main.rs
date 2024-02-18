@@ -1,8 +1,9 @@
 use kube::api::ListParams;
 use kube::{Api, Client};
 use tokio::task::JoinSet;
+use tracing::{event, span, Instrument};
 
-use github_operator::ControllerError;
+use github_operator::{init_logging, ControllerError};
 
 use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
@@ -26,8 +27,10 @@ mod extensions;
 
 #[tokio::main]
 async fn main() -> Result<(), ControllerError> {
-    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
-    log::info!("start controller");
+    init_logging()?;
+    event!(tracing::Level::INFO, "starting controllers...");
+    let span = span!(tracing::Level::INFO, "operator");
+    let _enter = span.enter();
 
     let client = Client::try_default()
         .await
@@ -52,41 +55,49 @@ async fn main() -> Result<(), ControllerError> {
         .await
         .map_err(ControllerError::CrdNotFound)?;
 
+    // dependencies
     let github_service = HttpGithubService::from_env();
 
     let mut tasks = JoinSet::new();
 
     // add repository controller
-    tasks.spawn(repository_controller::run(RepositoryControllerContext {
-        client: client.clone(),
-        repository_api,
-        reconcile_use_case: ReconcileRepositoryUseCase::new(Box::new(github_service.clone())),
-        archive_use_case: ArchiveRepositoryUseCase::new(Box::new(github_service.clone())),
-    }));
+    tasks.spawn(
+        repository_controller::run(RepositoryControllerContext {
+            client: client.clone(),
+            repository_api,
+            reconcile_use_case: ReconcileRepositoryUseCase::new(Box::new(github_service.clone())),
+            archive_use_case: ArchiveRepositoryUseCase::new(Box::new(github_service.clone())),
+        })
+        .instrument(tracing::info_span!("repository_controller")),
+    );
 
     // add autolink reference controller
-    tasks.spawn(autolink_reference_controller::run(
-        AutolinkReferenceControllerContext {
+    tasks.spawn(
+        autolink_reference_controller::run(AutolinkReferenceControllerContext {
             client: client.clone(),
             autolink_reference_api,
             reconcile_use_case: ReconcileAutolinkReferenceUseCase::new(Box::new(
                 github_service.clone(),
             )),
             delete_use_case: DeleteAutolinkReferenceUseCase::new(Box::new(github_service.clone())),
-        },
-    ));
+        })
+        .instrument(tracing::info_span!("autolink_reference_controller")),
+    );
 
     // add permission controller
-    tasks.spawn(permission_controller::run(PermissionControllerContext {
-        client: client.clone(),
-        permission_api,
-        reconcile_use_case: ReconcilePermissionUseCase::new(Box::new(github_service.clone())),
-        delete_use_case: DeletePermissionUseCase::new(Box::new(github_service.clone())),
-    }));
+    tasks.spawn(
+        permission_controller::run(PermissionControllerContext {
+            client: client.clone(),
+            permission_api,
+            reconcile_use_case: ReconcilePermissionUseCase::new(Box::new(github_service.clone())),
+            delete_use_case: DeletePermissionUseCase::new(Box::new(github_service.clone())),
+        })
+        .instrument(tracing::info_span!("permission_controller")),
+    );
 
     while let Some(res) = tasks.join_next().await {
         if let Err(e) = res {
-            log::error!("error: {:?}", e);
+            event!(tracing::Level::ERROR, "error: {:?}", e);
         }
     }
 

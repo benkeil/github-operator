@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
+use tracing::event;
 
 use github_operator::adapter::http_github_service::HttpGithubService;
 use github_operator::domain::get_repository_use_case::GetRepositoryUseCase;
+use github_operator::init_logging;
 
 /// CLI to manage GitHub repositories
 #[derive(Debug, Parser)] // requires `derive` feature
@@ -38,7 +40,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
-    log4rs::init_file("log4rs.cli.yaml", Default::default()).unwrap();
+    init_logging().expect("Failed to initialize logging");
 
     let args = Cli::parse();
 
@@ -49,7 +51,7 @@ async fn main() {
         Commands::Get {
             repository: ref full_name,
         } => {
-            log::debug!("get {}", full_name);
+            event!(tracing::Level::INFO, "get {}", full_name);
             if let Ok(github_repository) = get_github_repository_use_case.execute(full_name).await {
                 match args.output_format {
                     Some(OutputFormat::Json) => {
@@ -63,7 +65,7 @@ async fn main() {
             }
         }
         Commands::Set { repository } => {
-            log::debug!("set {}", repository);
+            event!(tracing::Level::INFO, "set {}", repository);
         }
     }
 }

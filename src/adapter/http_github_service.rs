@@ -17,6 +17,8 @@ pub struct HttpGithubService {
     github_token: String,
 }
 
+// as an alternate: https://docs.rs/reqwest/latest/reqwest/
+
 impl HttpGithubService {
     const HOST: &'static str = "https://api.github.com";
 
