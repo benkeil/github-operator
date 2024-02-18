@@ -1,42 +1,320 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: githubrepositories.platform.benkeil.de
+  name: repositories.github.platform.benkeil.de
 spec:
-  group: platform.benkeil.de
+  group: github.platform.benkeil.de
   names:
     categories: []
-    kind: GitHubRepository
-    plural: githubrepositories
+    kind: Repository
+    plural: repositories
     shortNames:
     - repo
-    singular: githubrepository
+    singular: repository
   scope: Namespaced
   versions:
   - additionalPrinterColumns: []
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Auto-generated derived type for GitHubRepositorySpec via `CustomResource`
+        description: Auto-generated derived type for RepositorySpec via `CustomResource`
         properties:
           spec:
             properties:
-              slug:
+              allow_auto_merge:
+                nullable: true
+                type: boolean
+              allow_merge_commit:
+                nullable: true
+                type: boolean
+              allow_rebase_merge:
+                nullable: true
+                type: boolean
+              allow_squash_merge:
+                nullable: true
+                type: boolean
+              allow_update_branch:
+                nullable: true
+                type: boolean
+              delete_branch_on_merge:
+                nullable: true
+                type: boolean
+              full_name:
                 type: string
+              security_and_analysis:
+                nullable: true
+                properties:
+                  advanced_security:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  dependabot_security_updates:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning_push_protection:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                  secret_scanning_validity_checks:
+                    nullable: true
+                    properties:
+                      status:
+                        enum:
+                        - enabled
+                        - disabled
+                        type: string
+                    required:
+                    - status
+                    type: object
+                type: object
             required:
-            - slug
+            - full_name
             type: object
           status:
             nullable: true
             properties:
-              provisioned:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      default: 0
+                      format: int64
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              healthy:
+                nullable: true
                 type: boolean
-            required:
-            - provisioned
             type: object
         required:
         - spec
-        title: GitHubRepository
+        title: Repository
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: autolinkreferences.github.platform.benkeil.de
+spec:
+  group: github.platform.benkeil.de
+  names:
+    categories: []
+    kind: AutolinkReference
+    plural: autolinkreferences
+    shortNames: []
+    singular: autolinkreference
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for AutolinkReferenceSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              full_name:
+                type: string
+              is_alphanumeric:
+                type: boolean
+              key_prefix:
+                type: string
+              url_template:
+                type: string
+            required:
+            - full_name
+            - is_alphanumeric
+            - key_prefix
+            - url_template
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      default: 0
+                      format: int64
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              healthy:
+                nullable: true
+                type: boolean
+              id:
+                format: uint32
+                minimum: 0.0
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: AutolinkReference
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: repositorypermissions.github.platform.benkeil.de
+spec:
+  group: github.platform.benkeil.de
+  names:
+    categories: []
+    kind: RepositoryPermission
+    plural: repositorypermissions
+    shortNames:
+    - permission
+    singular: repositorypermission
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for RepositoryPermissionSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              full_name:
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              full_team_name:
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              permission:
+                type: string
+            required:
+            - full_name
+            - full_team_name
+            - permission
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    observedGeneration:
+                      default: 0
+                      format: int64
+                      type: integer
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              healthy:
+                nullable: true
+                type: boolean
+            type: object
+        required:
+        - spec
+        title: RepositoryPermission
         type: object
     served: true
     storage: true

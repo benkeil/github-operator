@@ -1,7 +1,13 @@
-# Repo operator
+# github-operator
 
-## Description
+## Requirements
 
-This operator is used to create a repository in github.
+- [kind](https://kind.sigs.k8s.io)
 
-## Development
+## Usage
+
+### Cli
+
+```bash
+cargo run --bin cli -- get xxx/yyy
+```

@@ -1,0 +1,45 @@
+---
+apiVersion: github.platform.benkeil.de/v1alpha1
+kind: Repository
+metadata:
+  name: alarm-notification
+  namespace: pdh-da
+spec:
+  full_name: otto-ec/pdh-da_alarm-notification
+  delete_branch_on_merge: true
+  security_and_analysis:
+    advanced_security:
+      status: enabled
+    secret_scanning:
+      status: enabled
+    secret_scanning_push_protection:
+      status: enabled
+    dependabot_security_updates:
+      status: enabled
+    secret_scanning_validity_checks:
+      status: enabled
+
+---
+apiVersion: github.platform.benkeil.de/v1alpha1
+kind: AutolinkReference
+metadata:
+  name: alarm-notification
+  namespace: pdh-da
+spec:
+  full_name: otto-ec/pdh-da_alarm-notification
+  key_prefix: "DV-"
+  url_template: "https://otto-eg.atlassian.net/browse/DV-<num>"
+  is_alphanumeric: false
+
+---
+apiVersion: github.platform.benkeil.de/v1alpha1
+kind: RepositoryPermission
+metadata:
+  name: alarm-notification
+  namespace: pdh-da
+spec:
+  full_name: otto-ec/pdh-da_alarm-notification
+  full_team_name: otto-ec/pdh-distribution-analytics
+  permission: admin
+
+# ADR: manually changed settings/resources that are not in the spec are ignored
