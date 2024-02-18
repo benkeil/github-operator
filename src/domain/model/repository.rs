@@ -8,6 +8,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::conditions_schema;
+use crate::domain::model::immutable_string;
 use crate::domain::model::AutoConfigureSpec;
 
 // see https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#events
@@ -24,6 +25,7 @@ use crate::domain::model::AutoConfigureSpec;
 //#[serde(rename_all = "camelCase")]
 pub struct RepositorySpec {
     #[garde(skip)]
+    #[schemars(schema_with = "immutable_string")]
     pub full_name: String,
     #[garde(skip)]
     pub security_and_analysis: Option<SecurityAndAnalysisResponse>,

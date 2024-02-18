@@ -702,6 +702,7 @@ checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
 [[package]]
 name = "differ-from-spec"
 version = "0.1.0"
+source = "git+ssh://git@github.com/benkeil/rust-differ-from-spec.git?branch=main#24bdb69febb0d7f207de93929eb4db729bf8afa6"
 dependencies = [
  "differ-from-spec-derive",
 ]
@@ -709,10 +710,11 @@ dependencies = [
 [[package]]
 name = "differ-from-spec-derive"
 version = "0.1.0"
+source = "git+ssh://git@github.com/benkeil/rust-differ-from-spec.git?branch=main#24bdb69febb0d7f207de93929eb4db729bf8afa6"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.48",
+ "syn 1.0.109",
 ]
 
 [[package]]

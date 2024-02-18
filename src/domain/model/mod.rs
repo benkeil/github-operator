@@ -17,3 +17,15 @@ pub struct RepositoryFullView {
 pub trait AutoConfigureSpec {
     fn auto_configure(&mut self) -> &Self;
 }
+
+// https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#validation-rules
+pub fn immutable_string(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+    serde_json::from_value(serde_json::json!({
+        "type": "string",
+        "x-kubernetes-validations": [{
+            "rule": "self == oldSelf",
+            "message": "Value is immutable"
+        }]
+    }))
+    .unwrap()
+}

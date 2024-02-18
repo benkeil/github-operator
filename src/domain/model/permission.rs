@@ -6,6 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::domain::conditions_schema;
+use crate::domain::model::immutable_string;
 
 // see https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#events
 
@@ -21,8 +22,10 @@ use crate::domain::conditions_schema;
 //#[serde(rename_all = "camelCase")]
 pub struct RepositoryPermissionSpec {
     #[garde(skip)]
+    #[schemars(schema_with = "immutable_string")]
     pub full_name: String,
     #[garde(skip)]
+    #[schemars(schema_with = "immutable_string")]
     pub full_team_name: String,
     #[garde(skip)]
     pub permission: String,
