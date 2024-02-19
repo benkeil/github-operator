@@ -3,7 +3,7 @@ use tracing::event;
 
 use github_operator::adapter::http_github_service::HttpGithubService;
 use github_operator::domain::get_repository_use_case::GetRepositoryUseCase;
-use github_operator::init_logging;
+use github_operator::init_tracing;
 
 /// CLI to manage GitHub repositories
 #[derive(Debug, Parser)] // requires `derive` feature
@@ -40,7 +40,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() {
-    init_logging().expect("Failed to initialize logging");
+    init_tracing().expect("Failed to initialize logging");
 
     let args = Cli::parse();
 

@@ -3,7 +3,7 @@ use kube::{Api, Client};
 use tokio::task::JoinSet;
 use tracing::event;
 
-use github_operator::{init_logging, ControllerError};
+use github_operator::{init_tracing, ControllerError};
 
 use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
@@ -27,7 +27,7 @@ mod extensions;
 
 #[tokio::main]
 async fn main() -> Result<(), ControllerError> {
-    init_logging()?;
+    init_tracing()?;
     event!(tracing::Level::INFO, "starting controllers...");
 
     let client = Client::try_default()

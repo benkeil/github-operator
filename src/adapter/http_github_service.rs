@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use serde::Deserialize;
-use tracing::instrument;
+use tracing::{event, instrument};
 use ureq::Request;
 
 use crate::domain::model::autolink_reference::{
@@ -92,6 +92,7 @@ impl GitHubService for HttpGithubService {
         &self,
         full_name: &str,
     ) -> Result<Option<RepositoryResponse>, ControllerError> {
+        event!(tracing::Level::INFO, "get_repository: {}", full_name);
         let result = self.get(format!("/repos/{full_name}")).call();
         match result {
             Ok(response) => Ok(Some(

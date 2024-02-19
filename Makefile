@@ -28,3 +28,7 @@ kube-delete:
 
 
 renew: kube-delete crd-delete crd-generate crd-install kube-apply
+
+
+run:
+	OTEL_SERVICE_NAME=github-operator RUST_LOG="info,github_operator=debug" cargo run

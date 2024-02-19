@@ -12,7 +12,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
-use tracing::{span, Instrument};
+use tracing::{instrument, Instrument};
 
 use crate::controller::finalizer_name;
 use crate::domain::delete_permissions_use_case::DeletePermissionUseCase;
@@ -39,22 +39,21 @@ pub async fn run(controller_context: PermissionControllerContext) -> Result<(), 
     Ok(())
 }
 
+#[instrument(ret, err, skip(object, ctx))]
 async fn reconcile(
-    custom_resource: Arc<RepositoryPermission>,
+    object: Arc<RepositoryPermission>,
     ctx: Arc<PermissionControllerContext>,
 ) -> Result<Action, ControllerError> {
-    let span = span!(tracing::Level::INFO, "reconcile");
-    let _enter = span.enter();
-    log::info!("reconcile: {:?}", custom_resource.object_ref(&()));
+    log::info!("reconcile: {:?}", object.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
         "permission-github-controller".into(),
-        custom_resource.object_ref(&()),
+        object.object_ref(&()),
     );
     let api = Api::<RepositoryPermission>::namespaced(
         ctx.client.clone(),
-        custom_resource
+        object
             .namespace()
             .as_ref()
             .ok_or_else(|| ControllerError::IllegalDocument)?,
@@ -63,7 +62,7 @@ async fn reconcile(
     finalizer(
         &api,
         finalizer_name("permission").as_str(),
-        custom_resource,
+        object,
         |event| async {
             match event {
                 Event::Apply(github_repository) => {

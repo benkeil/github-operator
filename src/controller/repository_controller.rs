@@ -13,7 +13,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
-use tracing::{span, Instrument};
+use tracing::{instrument, Instrument};
 
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
 use crate::domain::model::repository::{Repository, RepositoryStatus};
@@ -39,22 +39,21 @@ pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), 
     Ok(())
 }
 
+#[instrument(ret, err, skip(object, ctx))]
 async fn reconcile(
-    github_repository: Arc<Repository>,
-    ctx: Arc<Context>,
+    object: Arc<Repository>,
+    ctx: Arc<RepositoryControllerContext>,
 ) -> Result<Action, ControllerError> {
-    let span = span!(tracing::Level::INFO, "reconcile");
-    let _enter = span.enter();
-    log::info!("reconcile: {:?}", github_repository.object_ref(&()));
+    log::info!("reconcile: {:?}", object.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
         "repository-github-controller".into(),
-        github_repository.object_ref(&()),
+        object.object_ref(&()),
     );
     let github_repository_api = Api::<Repository>::namespaced(
         ctx.client.clone(),
-        github_repository
+        object
             .metadata
             .namespace
             .as_ref()
@@ -64,7 +63,7 @@ async fn reconcile(
     finalizer(
         &github_repository_api,
         finalizer_name("repository").as_str(),
-        github_repository,
+        object,
         |event| async {
             match event {
                 Event::Apply(github_repository) => {
@@ -109,7 +108,7 @@ async fn reconcile(
 fn handle_errors(
     _github_repository: Arc<Repository>,
     error: &ControllerError,
-    _ctx: Arc<Context>,
+    _ctx: Arc<RepositoryControllerContext>,
 ) -> Action {
     log::warn!("reconcile failed: {:?}", error,);
     Action::requeue(Duration::from_secs(5))
@@ -167,23 +166,4 @@ pub struct RepositoryControllerContext {
     pub repository_api: Api<Repository>,
     pub reconcile_use_case: ReconcileRepositoryUseCase,
     pub archive_use_case: ArchiveRepositoryUseCase,
-}
-
-pub struct Context {
-    /// Kubernetes client
-    pub client: Client,
-    pub repository_api: Api<Repository>,
-    pub reconcile_use_case: ReconcileRepositoryUseCase,
-    pub archive_use_case: ArchiveRepositoryUseCase,
-}
-
-impl From<RepositoryControllerContext> for Arc<Context> {
-    fn from(controller_context: RepositoryControllerContext) -> Self {
-        Arc::new(Context {
-            client: controller_context.client,
-            repository_api: controller_context.repository_api,
-            reconcile_use_case: controller_context.reconcile_use_case,
-            archive_use_case: controller_context.archive_use_case,
-        })
-    }
 }

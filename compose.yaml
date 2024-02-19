@@ -15,6 +15,21 @@ services:
     ports:
       - 8080:8080
 
+  # https://www.jaegertracing.io/docs/1.54/deployment/
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - LOG_LEVEL=debug
+    networks:
+      - jaeger-example
+
+networks:
+  jaeger-example:
+
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
 # start the database before your application. The `db-data` volume persists the
@@ -47,4 +62,3 @@ services:
 # secrets:
 #   db-password:
 #     file: db/password.txt
-

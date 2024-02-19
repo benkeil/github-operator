@@ -1,6 +1,6 @@
 use thiserror::Error;
-use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::prelude::*;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
 
@@ -46,7 +46,9 @@ pub enum ControllerError {
     NotFound,
 }
 
-pub fn init_logging() -> Result<(), ControllerError> {
+// see also: https://broch.tech/posts/rust-tracing-opentelemetry/
+// see also: https://github.com/tekul/rust-tracing-otlp/
+pub fn init_tracing() -> Result<(), ControllerError> {
     let logging_format = std::env::var("APP_LOGGING_FORMAT")
         .unwrap_or("plain".to_string())
         .to_lowercase();
@@ -57,19 +59,19 @@ pub fn init_logging() -> Result<(), ControllerError> {
         (None, Some(tracing_subscriber::fmt::layer()))
     };
 
-    let env_filter_layer = EnvFilter::builder()
-        .with_default_directive(LevelFilter::INFO.into())
-        .from_env_lossy()
-        .add_directive(
-            "github_operator=debug"
-                .parse()
-                .map_err(|_| ControllerError::ConfigurationError)?,
-        );
+    let tracer = opentelemetry_otlp::new_pipeline()
+        .tracing()
+        .with_exporter(opentelemetry_otlp::new_exporter().tonic())
+        .install_batch(opentelemetry_sdk::runtime::Tokio)
+        .expect("Couldn't create OTLP tracer");
+
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
 
     tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env())
         .with(json)
         .with(plain)
-        .with(env_filter_layer)
+        .with(telemetry)
         .init();
 
     Ok(())

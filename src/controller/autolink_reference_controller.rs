@@ -12,7 +12,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
-use tracing::{span, Instrument};
+use tracing::{instrument, Instrument};
 
 use crate::controller::finalizer_name;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
@@ -41,22 +41,21 @@ pub async fn run(
     Ok(())
 }
 
+#[instrument(ret, err, skip(object, ctx))]
 async fn reconcile(
-    autolink_reference: Arc<AutolinkReference>,
+    object: Arc<AutolinkReference>,
     ctx: Arc<AutolinkReferenceControllerContext>,
 ) -> Result<Action, ControllerError> {
-    let span = span!(tracing::Level::INFO, "reconcile");
-    let _enter = span.enter();
-    log::info!("reconcile: {:?}", autolink_reference.object_ref(&()));
+    log::info!("reconcile: {:?}", object.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
         "autolink-reference-github-controller".into(),
-        autolink_reference.object_ref(&()),
+        object.object_ref(&()),
     );
     let autolink_reference_api = Api::<AutolinkReference>::namespaced(
         ctx.client.clone(),
-        autolink_reference
+        object
             .metadata
             .namespace
             .as_ref()
@@ -66,7 +65,7 @@ async fn reconcile(
     finalizer(
         &autolink_reference_api,
         finalizer_name("autolink-reference").as_str(),
-        autolink_reference,
+        object,
         |event| async {
             match event {
                 Event::Apply(autolink_reference) => {
