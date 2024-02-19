@@ -12,7 +12,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
-use tracing::Instrument;
+use tracing::{span, Instrument};
 
 use crate::controller::finalizer_name;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
@@ -45,6 +45,8 @@ async fn reconcile(
     autolink_reference: Arc<AutolinkReference>,
     ctx: Arc<AutolinkReferenceControllerContext>,
 ) -> Result<Action, ControllerError> {
+    let span = span!(tracing::Level::INFO, "reconcile");
+    let _enter = span.enter();
     log::info!("reconcile: {:?}", autolink_reference.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(

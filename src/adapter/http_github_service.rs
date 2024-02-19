@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use serde::Deserialize;
+use tracing::instrument;
 use ureq::Request;
 
 use crate::domain::model::autolink_reference::{
@@ -11,7 +12,7 @@ use crate::domain::model::repository::RepositoryResponse;
 use crate::domain::service::github_service::GitHubService;
 use crate::ControllerError;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HttpGithubService {
     client: ureq::Agent,
     github_token: String,
@@ -73,6 +74,7 @@ impl HttpGithubService {
 
 #[async_trait]
 impl GitHubService for HttpGithubService {
+    #[instrument]
     async fn create_repository(
         &self,
         full_name: &str,
@@ -85,6 +87,7 @@ impl GitHubService for HttpGithubService {
             .map_err(ControllerError::IoError)
     }
 
+    #[instrument]
     async fn get_repository(
         &self,
         full_name: &str,
@@ -99,6 +102,7 @@ impl GitHubService for HttpGithubService {
         }
     }
 
+    #[instrument]
     async fn update_repository(
         &self,
         full_name: &str,
@@ -114,10 +118,12 @@ impl GitHubService for HttpGithubService {
         }
     }
 
+    #[instrument]
     async fn archive_repository(&self, _full_name: &str) -> Result<(), ControllerError> {
         Ok(())
     }
 
+    #[instrument]
     async fn get_autolink_references(
         &self,
         full_name: &str,
@@ -129,6 +135,7 @@ impl GitHubService for HttpGithubService {
             .map_err(ControllerError::IoError)
     }
 
+    #[instrument]
     async fn get_autolink_reference(
         &self,
         full_name: &str,
@@ -144,6 +151,7 @@ impl GitHubService for HttpGithubService {
         }
     }
 
+    #[instrument]
     async fn add_autolink_reference(
         &self,
         full_name: &str,
@@ -156,6 +164,7 @@ impl GitHubService for HttpGithubService {
             .map_err(ControllerError::IoError)
     }
 
+    #[instrument]
     async fn delete_autolink_references(
         &self,
         full_name: &str,
@@ -174,6 +183,7 @@ impl GitHubService for HttpGithubService {
         }
     }
 
+    #[instrument]
     async fn get_team_permission(
         &self,
         full_name: &str,
@@ -197,6 +207,7 @@ impl GitHubService for HttpGithubService {
         }
     }
 
+    #[instrument]
     async fn update_team_permission(
         &self,
         full_name: &str,
@@ -213,6 +224,7 @@ impl GitHubService for HttpGithubService {
             .map_err(Self::box_error)
     }
 
+    #[instrument]
     async fn delete_team_permission(
         &self,
         full_name: &str,

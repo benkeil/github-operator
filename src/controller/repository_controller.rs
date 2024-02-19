@@ -13,7 +13,7 @@ use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
 use serde_json::json;
-use tracing::Instrument;
+use tracing::{span, Instrument};
 
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
 use crate::domain::model::repository::{Repository, RepositoryStatus};
@@ -43,6 +43,8 @@ async fn reconcile(
     github_repository: Arc<Repository>,
     ctx: Arc<Context>,
 ) -> Result<Action, ControllerError> {
+    let span = span!(tracing::Level::INFO, "reconcile");
+    let _enter = span.enter();
     log::info!("reconcile: {:?}", github_repository.object_ref(&()));
     // must be namespaced
     let recorder = Recorder::new(
