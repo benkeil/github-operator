@@ -12,6 +12,8 @@ use kube::runtime::finalizer::{finalizer, Event};
 use kube::runtime::watcher::Config;
 use kube::runtime::Controller;
 use kube::{Api, Client, Resource, ResourceExt};
+use opentelemetry::metrics::Meter;
+use opentelemetry::KeyValue;
 use serde_json::json;
 use tracing::{instrument, Instrument};
 
@@ -22,6 +24,7 @@ use crate::extensions::DurationExtension;
 use crate::ControllerError;
 
 pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), ControllerError> {
+    let meter = &controller_context.meter.clone();
     Controller::new(
         controller_context.repository_api.clone(),
         Config::default().any_semantic(),
@@ -29,9 +32,19 @@ pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), 
     .shutdown_on_signal()
     .run(reconcile, handle_errors, controller_context.into())
     .for_each(|res| async move {
+        let counter = meter
+            .u64_counter("operator_results")
+            .with_description("Counts things")
+            .init();
         match res {
-            Ok(o) => log::info!("reconciled {:?}", o),
-            Err(e) => log::warn!("reconcile failed: {}", e),
+            Ok(o) => {
+                counter.add(1, &[KeyValue::new("status", "ok")]);
+                log::info!("reconciled {:?}", o)
+            }
+            Err(e) => {
+                counter.add(1, &[KeyValue::new("status", "error")]);
+                log::warn!("reconcile failed: {}", e)
+            }
         }
     })
     .await;
@@ -163,6 +176,7 @@ async fn update_status(
 pub struct RepositoryControllerContext {
     /// Kubernetes client
     pub client: Client,
+    pub meter: Meter,
     pub repository_api: Api<Repository>,
     pub reconcile_use_case: ReconcileRepositoryUseCase,
     pub archive_use_case: ArchiveRepositoryUseCase,

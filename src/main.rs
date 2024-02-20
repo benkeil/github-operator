@@ -1,9 +1,18 @@
+use std::net::SocketAddr;
+
+use axum::extract::State;
+use axum::response::IntoResponse;
+use axum::routing::get;
+use axum::Router;
+use futures::TryFutureExt;
 use kube::api::ListParams;
 use kube::{Api, Client};
+use prometheus::{Encoder, Registry, TextEncoder};
+use tokio::signal::unix::{signal, SignalKind};
 use tokio::task::JoinSet;
 use tracing::event;
 
-use github_operator::{init_tracing, ControllerError};
+use github_operator::{init_meter, init_tracing, ControllerError};
 
 use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
@@ -29,6 +38,9 @@ mod extensions;
 async fn main() -> Result<(), ControllerError> {
     init_tracing()?;
     event!(tracing::Level::INFO, "starting controllers...");
+
+    let registry = Registry::new();
+    let meter = init_meter(&registry)?;
 
     let client = Client::try_default()
         .await
@@ -58,9 +70,22 @@ async fn main() -> Result<(), ControllerError> {
 
     let mut tasks = JoinSet::new();
 
+    // start server to expose metrics
+    let app = Router::new()
+        .route("/metrics", get(metrics_handler))
+        .with_state(HttpState {
+            registry: registry.clone(),
+        });
+    let addr = SocketAddr::from(([127, 0, 0, 1], 9100));
+    let server = axum_server::bind(addr)
+        .serve(app.into_make_service())
+        .map_err(ControllerError::IoError);
+    let http_handle = tokio::spawn(server);
+
     // add repository controller
     tasks.spawn(repository_controller::run(RepositoryControllerContext {
         client: client.clone(),
+        meter,
         repository_api,
         reconcile_use_case: ReconcileRepositoryUseCase::new(Box::new(github_service.clone())),
         archive_use_case: ArchiveRepositoryUseCase::new(Box::new(github_service.clone())),
@@ -92,5 +117,28 @@ async fn main() -> Result<(), ControllerError> {
         }
     }
 
+    // Listen for SIGINT signal for graceful shutdown
+    let mut stream = signal(SignalKind::interrupt()).unwrap();
+    tokio::spawn(async move {
+        stream.recv().await;
+        http_handle.abort();
+    });
+
     Ok(())
+}
+
+#[derive(Clone)]
+struct HttpState {
+    pub registry: Registry,
+}
+
+async fn metrics_handler(State(HttpState { registry }): State<HttpState>) -> impl IntoResponse {
+    let encoder = TextEncoder::new();
+    let metric_families = registry.gather();
+    let mut result = Vec::new();
+    encoder
+        .encode(&metric_families, &mut result)
+        .map_err(ControllerError::PrometheusError)
+        .expect("Couldn't encode metrics");
+    result
 }

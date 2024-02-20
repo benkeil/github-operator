@@ -1,3 +1,7 @@
+use opentelemetry::metrics::Meter;
+use opentelemetry::metrics::MeterProvider as _;
+use opentelemetry_sdk::metrics::MeterProvider;
+use prometheus::Registry;
 use thiserror::Error;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -23,6 +27,9 @@ pub enum ControllerError {
 
     #[error("IoError: {0}")]
     IoError(std::io::Error),
+
+    #[error("PrometheusError: {0}")]
+    PrometheusError(prometheus::Error),
 
     // NB: awkward type because finalizer::Error embeds the reconciler error (which is this)
     // so boxing this error to break cycles
@@ -74,4 +81,15 @@ pub fn init_tracing() -> Result<(), ControllerError> {
         .init();
 
     Ok(())
+}
+
+pub fn init_meter(registry: &Registry) -> Result<Meter, ControllerError> {
+    let exporter = opentelemetry_prometheus::exporter()
+        .with_registry(registry.clone())
+        .build()
+        .map_err(|_| ControllerError::ConfigurationError)?;
+
+    let provider = MeterProvider::builder().with_reader(exporter).build();
+
+    Ok(provider.meter("github-operator"))
 }

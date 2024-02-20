@@ -37,3 +37,7 @@ tracing-opentelemetry = "0.22"
 opentelemetry = "0.21"
 opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.14"
+opentelemetry-prometheus = "0.14"
+prometheus = "0.13"
+axum = "0.7"
+axum-server = "0.6"
