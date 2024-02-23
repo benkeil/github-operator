@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use axum::extract::State;
+use axum::http::header;
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::Router;
@@ -12,12 +13,11 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::task::JoinSet;
 use tracing::event;
 
-use github_operator::{init_meter, init_tracing, ControllerError};
+use github_operator::{init_meter, init_registry, init_tracing, ControllerError};
 
 use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
-use crate::controller::permission_controller;
-use crate::controller::permission_controller::PermissionControllerContext;
+use crate::controller::permission_controller::{self, PermissionControllerContext};
 use crate::controller::repository_controller::{self, RepositoryControllerContext};
 use crate::domain::archive_repository_use_case::ArchiveRepositoryUseCase;
 use crate::domain::delete_autolink_reference_use_case::DeleteAutolinkReferenceUseCase;
@@ -37,10 +37,9 @@ mod extensions;
 #[tokio::main]
 async fn main() -> Result<(), ControllerError> {
     init_tracing()?;
-    event!(tracing::Level::INFO, "starting controllers...");
-
-    let registry = Registry::new();
+    let registry = init_registry()?;
     let meter = init_meter(&registry)?;
+    event!(tracing::Level::INFO, "starting controllers...");
 
     let client = Client::try_default()
         .await
@@ -72,7 +71,7 @@ async fn main() -> Result<(), ControllerError> {
 
     // start server to expose metrics
     let app = Router::new()
-        .route("/metrics", get(metrics_handler))
+        .route("/prometheus", get(metrics_handler))
         .with_state(HttpState {
             registry: registry.clone(),
         });
@@ -140,5 +139,6 @@ async fn metrics_handler(State(HttpState { registry }): State<HttpState>) -> imp
         .encode(&metric_families, &mut result)
         .map_err(ControllerError::PrometheusError)
         .expect("Couldn't encode metrics");
-    result
+
+    ([(header::CONTENT_TYPE, "text/plain")], result)
 }

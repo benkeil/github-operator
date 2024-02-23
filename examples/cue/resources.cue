@@ -3,11 +3,11 @@ package config
 import "strings"
 
 _resources: [string]: [...#CR]
-_resources: {for repo in #repositories {
+_resources: {for repo in _repositories {
 
 	let #metadata = {
 		name:      strings.Split(repo, "_")[1]
-		namespace: #namespace
+		namespace: _namespace
 	}
 
 	(strings.Split(repo, "_")[1]): [

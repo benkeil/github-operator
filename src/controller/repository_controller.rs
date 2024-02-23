@@ -34,15 +34,27 @@ pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), 
     .for_each(|res| async move {
         let counter = meter
             .u64_counter("operator_results")
-            .with_description("Counts things")
+            .with_description("reconciliation results of the operator")
             .init();
         match res {
             Ok(o) => {
-                counter.add(1, &[KeyValue::new("status", "ok")]);
+                counter.add(
+                    1,
+                    &[
+                        KeyValue::new("status", "ok"),
+                        KeyValue::new("controller", "repository-github-controller"),
+                    ],
+                );
                 log::info!("reconciled {:?}", o)
             }
             Err(e) => {
-                counter.add(1, &[KeyValue::new("status", "error")]);
+                counter.add(
+                    1,
+                    &[
+                        KeyValue::new("status", "error"),
+                        KeyValue::new("controller", "repository-github-controller"),
+                    ],
+                );
                 log::warn!("reconcile failed: {}", e)
             }
         }

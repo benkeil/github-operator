@@ -1,8 +1,8 @@
 package config
 
-#namespace: "pdh-da"
+_namespace: "pdh-da"
 
-#repositories: [
+_repositories: [
 	"otto-ec/pdh-da_alarm-notification",
 	"otto-ec/pdh-da_customer-popularity",
 	"otto-ec/dv_opal-events",
