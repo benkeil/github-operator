@@ -13,7 +13,7 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::task::JoinSet;
 use tracing::event;
 
-use github_operator::{init_meter, init_registry, init_tracing, ControllerError};
+use github_operator::{init_registry, init_tracing, ControllerError};
 
 use crate::adapter::http_github_service::HttpGithubService;
 use crate::controller::autolink_reference_controller::{self, AutolinkReferenceControllerContext};
@@ -38,7 +38,6 @@ mod extensions;
 async fn main() -> Result<(), ControllerError> {
     init_tracing()?;
     let registry = init_registry()?;
-    let meter = init_meter(&registry)?;
     event!(tracing::Level::INFO, "starting controllers...");
 
     let client = Client::try_default()
@@ -84,7 +83,6 @@ async fn main() -> Result<(), ControllerError> {
     // add repository controller
     tasks.spawn(repository_controller::run(RepositoryControllerContext {
         client: client.clone(),
-        meter,
         repository_api,
         reconcile_use_case: ReconcileRepositoryUseCase::new(Box::new(github_service.clone())),
         archive_use_case: ArchiveRepositoryUseCase::new(Box::new(github_service.clone())),

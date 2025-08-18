@@ -1,4 +1,5 @@
 use kube::runtime::events::{Event, EventType, Recorder};
+use kube::Resource;
 
 use crate::domain::model::autolink_reference::AutolinkReference;
 use crate::domain::service::github_service::GitHubService;
@@ -28,14 +29,18 @@ impl DeleteAutolinkReferenceUseCase {
                 self.github_service
                     .delete_autolink_references(&autolink_reference.spec.full_name, id)
                     .await?;
+                let reference = autolink_reference.object_ref(&());
                 recorder
-                    .publish(Event {
-                        action: "autolink-reference-deleted".into(),
-                        reason: "Reconciling".into(),
-                        note: Some("Autolink reference deleted".into()),
-                        type_: EventType::Normal,
-                        secondary: None,
-                    })
+                    .publish(
+                        &Event {
+                            action: "autolink-reference-deleted".into(),
+                            reason: "Reconciling".into(),
+                            note: Some("Autolink reference deleted".into()),
+                            type_: EventType::Normal,
+                            secondary: None,
+                        },
+                        &reference,
+                    )
                     .await
                     .map_err(ControllerError::KubeError)?;
             }

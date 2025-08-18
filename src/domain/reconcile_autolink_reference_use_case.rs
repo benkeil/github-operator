@@ -1,5 +1,7 @@
 use differ_from_spec::DifferFromSpec;
+use k8s_openapi::api::core::v1::ObjectReference;
 use kube::runtime::events::{Event, EventType, Recorder};
+use kube::Resource;
 
 use crate::domain::model::autolink_reference::{
     AutolinkReference, AutolinkReferenceRequest, AutolinkReferenceStatus,
@@ -50,7 +52,8 @@ impl ReconcileAutolinkReferenceUseCase {
                                 &autolink_reference_spec,
                             )
                             .await?;
-                        self.publish_updated_event(recorder).await?;
+                        let reference = autolink_reference.object_ref(&());
+                        self.publish_updated_event(recorder, &reference).await?;
                         Ok(response.id)
                     } else {
                         Ok(*id)
@@ -65,7 +68,8 @@ impl ReconcileAutolinkReferenceUseCase {
                             &autolink_reference_spec,
                         )
                         .await?;
-                    self.publish_created_event(recorder).await?;
+                    let reference = autolink_reference.object_ref(&());
+                    self.publish_created_event(recorder, &reference).await?;
                     Ok(response.id)
                 }
                 Err(e) => Err(e),
@@ -91,33 +95,48 @@ impl ReconcileAutolinkReferenceUseCase {
             .github_service
             .add_autolink_reference(&autolink_reference.spec.full_name, &autolink_reference_spec)
             .await?;
-        self.publish_created_event(recorder).await?;
+        let reference = autolink_reference.object_ref(&());
+        self.publish_created_event(recorder, &reference).await?;
 
         Ok(response.id)
     }
 
-    async fn publish_created_event(&self, recorder: Recorder) -> Result<(), ControllerError> {
+    async fn publish_created_event(
+        &self,
+        recorder: Recorder,
+        reference: &ObjectReference,
+    ) -> Result<(), ControllerError> {
         recorder
-            .publish(Event {
-                action: "autolink-reference-created".into(),
-                reason: "Reconciling".into(),
-                note: Some("Autolink reference created".into()),
-                type_: EventType::Normal,
-                secondary: None,
-            })
+            .publish(
+                &Event {
+                    action: "autolink-reference-created".into(),
+                    reason: "Reconciling".into(),
+                    note: Some("Autolink reference created".into()),
+                    type_: EventType::Normal,
+                    secondary: None,
+                },
+                reference,
+            )
             .await
             .map_err(ControllerError::KubeError)
     }
 
-    async fn publish_updated_event(&self, recorder: Recorder) -> Result<(), ControllerError> {
+    async fn publish_updated_event(
+        &self,
+        recorder: Recorder,
+        reference: &ObjectReference,
+    ) -> Result<(), ControllerError> {
         recorder
-            .publish(Event {
-                action: "autolink-reference-updated".into(),
-                reason: "Reconciling".into(),
-                note: Some("Autolink reference updated".into()),
-                type_: EventType::Normal,
-                secondary: None,
-            })
+            .publish(
+                &Event {
+                    action: "autolink-reference-updated".into(),
+                    reason: "Reconciling".into(),
+                    note: Some("Autolink reference updated".into()),
+                    type_: EventType::Normal,
+                    secondary: None,
+                },
+                reference,
+            )
             .await
             .map_err(ControllerError::KubeError)
     }

@@ -24,7 +24,6 @@ use crate::extensions::DurationExtension;
 use crate::ControllerError;
 
 pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), ControllerError> {
-    let meter = &controller_context.meter.clone();
     Controller::new(
         controller_context.repository_api.clone(),
         Config::default().any_semantic(),
@@ -32,31 +31,9 @@ pub async fn run(controller_context: RepositoryControllerContext) -> Result<(), 
     .shutdown_on_signal()
     .run(reconcile, handle_errors, controller_context.into())
     .for_each(|res| async move {
-        let counter = meter
-            .u64_counter("operator_results")
-            .with_description("reconciliation results of the operator")
-            .init();
         match res {
-            Ok(o) => {
-                counter.add(
-                    1,
-                    &[
-                        KeyValue::new("status", "ok"),
-                        KeyValue::new("controller", "repository-github-controller"),
-                    ],
-                );
-                log::info!("reconciled {:?}", o)
-            }
-            Err(e) => {
-                counter.add(
-                    1,
-                    &[
-                        KeyValue::new("status", "error"),
-                        KeyValue::new("controller", "repository-github-controller"),
-                    ],
-                );
-                log::warn!("reconcile failed: {}", e)
-            }
+            Ok(o) => log::info!("reconciled {:?}", o),
+            Err(e) => log::warn!("reconcile failed: {:#?}", e),
         }
     })
     .await;
@@ -71,11 +48,7 @@ async fn reconcile(
 ) -> Result<Action, ControllerError> {
     log::info!("reconcile: {:?}", object.object_ref(&()));
     // must be namespaced
-    let recorder = Recorder::new(
-        ctx.client.clone(),
-        "repository-github-controller".into(),
-        object.object_ref(&()),
-    );
+    let recorder = Recorder::new(ctx.client.clone(), "repository-github-controller".into());
     let github_repository_api = Api::<Repository>::namespaced(
         ctx.client.clone(),
         object
@@ -95,7 +68,7 @@ async fn reconcile(
                     log::info!("object ref: {:?}", github_repository.object_ref(&()));
                     match ctx
                         .reconcile_use_case
-                        .execute(&github_repository.spec, recorder)
+                        .execute(&github_repository, recorder)
                         .instrument(tracing::info_span!("apply"))
                         .await
                     {
@@ -188,7 +161,6 @@ async fn update_status(
 pub struct RepositoryControllerContext {
     /// Kubernetes client
     pub client: Client,
-    pub meter: Meter,
     pub repository_api: Api<Repository>,
     pub reconcile_use_case: ReconcileRepositoryUseCase,
     pub archive_use_case: ArchiveRepositoryUseCase,

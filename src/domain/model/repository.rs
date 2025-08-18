@@ -6,7 +6,6 @@ use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
 use kube::CustomResource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
 use crate::domain::conditions_schema;
 use crate::domain::model::immutable_string;
 use crate::domain::model::AutoConfigureSpec;
@@ -22,7 +21,7 @@ use crate::domain::model::AutoConfigureSpec;
     shortname = "repo"
 )]
 #[kube(status = "RepositoryStatus")]
-//#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct RepositorySpec {
     #[garde(skip)]
     #[schemars(schema_with = "immutable_string")]

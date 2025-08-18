@@ -7,6 +7,7 @@ metadata:
 spec:
   full_name: otto-ec/pdh-da_alarm-notification
   delete_branch_on_merge: true
+  on_delete: ARCHIVE | IGNORE | DELETE
   security_and_analysis:
     advanced_security:
       status: enabled

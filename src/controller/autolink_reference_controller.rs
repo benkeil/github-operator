@@ -46,12 +46,12 @@ async fn reconcile(
     object: Arc<AutolinkReference>,
     ctx: Arc<AutolinkReferenceControllerContext>,
 ) -> Result<Action, ControllerError> {
-    log::info!("reconcile: {:?}", object.object_ref(&()));
+    let reference = object.object_ref(&());
+    log::info!("reconcile: {:?}", reference);
     // must be namespaced
     let recorder = Recorder::new(
         ctx.client.clone(),
         "autolink-reference-github-controller".into(),
-        object.object_ref(&()),
     );
     let autolink_reference_api = Api::<AutolinkReference>::namespaced(
         ctx.client.clone(),

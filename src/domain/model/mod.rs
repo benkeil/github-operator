@@ -1,5 +1,8 @@
 use crate::domain::model::autolink_reference::AutolinkReferenceResponse;
 use crate::domain::model::repository::RepositoryResponse;
+use kube_derive::CustomResource;
+use schemars::gen::SchemaGenerator;
+use schemars::schema::Schema;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -19,7 +22,7 @@ pub trait AutoConfigureSpec {
 }
 
 // https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#validation-rules
-pub fn immutable_string(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+pub fn immutable_string(_: &mut SchemaGenerator) -> Schema {
     serde_json::from_value(serde_json::json!({
         "type": "string",
         "x-kubernetes-validations": [{
@@ -28,4 +31,10 @@ pub fn immutable_string(_: &mut schemars::gen::SchemaGenerator) -> schemars::sch
         }]
     }))
     .unwrap()
+}
+
+#[derive(CustomResource, Clone, Debug, Deserialize, Serialize, JsonSchema)]
+#[kube(group = "clux.dev", version = "v1", kind = "Foo", namespaced)]
+struct FooSpec {
+    info: String,
 }

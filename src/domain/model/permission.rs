@@ -19,7 +19,7 @@ use crate::domain::model::immutable_string;
     shortname = "permission"
 )]
 #[kube(status = "RepositoryPermissionStatus")]
-//#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct RepositoryPermissionSpec {
     #[garde(skip)]
     #[schemars(schema_with = "immutable_string")]

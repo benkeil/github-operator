@@ -46,11 +46,7 @@ async fn reconcile(
 ) -> Result<Action, ControllerError> {
     log::info!("reconcile: {:?}", object.object_ref(&()));
     // must be namespaced
-    let recorder = Recorder::new(
-        ctx.client.clone(),
-        "permission-github-controller".into(),
-        object.object_ref(&()),
-    );
+    let recorder = Recorder::new(ctx.client.clone(), "permission-github-controller".into());
     let api = Api::<RepositoryPermission>::namespaced(
         ctx.client.clone(),
         object
@@ -69,7 +65,7 @@ async fn reconcile(
                     log::info!("object ref: {:?}", github_repository.object_ref(&()));
                     match ctx
                         .reconcile_use_case
-                        .execute(&github_repository.spec, recorder)
+                        .execute(&github_repository, recorder)
                         .instrument(tracing::info_span!("apply"))
                         .await
                     {
@@ -87,7 +83,7 @@ async fn reconcile(
                 Event::Cleanup(permission) => {
                     match ctx
                         .delete_use_case
-                        .execute(&permission.spec, recorder)
+                        .execute(&permission, recorder)
                         .instrument(tracing::info_span!("cleanup"))
                         .await
                     {

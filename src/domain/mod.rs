@@ -8,7 +8,10 @@ pub mod reconcile_permissions_use_case;
 pub mod reconcile_repository_use_case;
 pub mod service;
 
-pub fn conditions_schema(_: &mut schemars::gen::SchemaGenerator) -> schemars::schema::Schema {
+use schemars::gen::SchemaGenerator;
+use schemars::schema::Schema;
+
+pub fn conditions_schema(_: &mut SchemaGenerator) -> Schema {
     serde_json::from_value(serde_json::json!({
         "type": "array",
         "x-kubernetes-list-type": "map",
