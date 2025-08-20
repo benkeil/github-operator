@@ -1,0 +1,21 @@
+###
+# @name createAutoLink
+POST https://api.github.com/repos/{{owner}}/{{name}}/autolinks
+Authorization: Bearer {{$env.GITHUB_TOKEN}}
+Content-Type: application/json
+
+{
+  "key_prefix": "DV-",
+  "url_template": "https://otto-eg.atlassian.net/browse/DV-<num>",
+  "is_alphanumeric": false
+}
+
+###
+# @name upsertTeamPermission
+PUT https://api.github.com/orgs/{{owner}}/teams/{{team}}/repos/{{owner}}/{{name}}
+Authorization: Bearer {{$env.GITHUB_TOKEN}}
+Content-Type: application/json
+
+{
+  "permission": "admin"
+}

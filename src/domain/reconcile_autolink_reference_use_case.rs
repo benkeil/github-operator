@@ -25,8 +25,7 @@ impl ReconcileAutolinkReferenceUseCase {
     ) -> Result<u32, ControllerError> {
         log::info!("reconcile: {}", &autolink_reference.spec.full_name);
 
-        let autolink_reference_spec: AutolinkReferenceRequest =
-            autolink_reference.spec.clone().into();
+        let spec: AutolinkReferenceRequest = autolink_reference.spec.clone().into();
 
         // if we have an id, we need to update the autolink reference
         if let Some(AutolinkReferenceStatus { id: Some(id), .. }) = &autolink_reference.status {
@@ -41,16 +40,13 @@ impl ReconcileAutolinkReferenceUseCase {
                     let actual_autolink_reference: AutolinkReferenceRequest =
                         actual_autolink_reference.into();
                     // if the spec differs from the actual autolink reference, we need to update it
-                    if autolink_reference_spec.differ_from_spec(&actual_autolink_reference) {
+                    if spec.differ_from_spec(&actual_autolink_reference) {
                         self.github_service
                             .delete_autolink_references(&autolink_reference.spec.full_name, id)
                             .await?;
                         let response = self
                             .github_service
-                            .add_autolink_reference(
-                                &autolink_reference.spec.full_name,
-                                &autolink_reference_spec,
-                            )
+                            .add_autolink_reference(&autolink_reference.spec.full_name, &spec)
                             .await?;
                         let reference = autolink_reference.object_ref(&());
                         self.publish_updated_event(recorder, &reference).await?;
@@ -63,10 +59,7 @@ impl ReconcileAutolinkReferenceUseCase {
                     // if we have an id and the autolink reference does not exist, we need to create it
                     let response = self
                         .github_service
-                        .add_autolink_reference(
-                            &autolink_reference.spec.full_name,
-                            &autolink_reference_spec,
-                        )
+                        .add_autolink_reference(&autolink_reference.spec.full_name, &spec)
                         .await?;
                     let reference = autolink_reference.object_ref(&());
                     self.publish_created_event(recorder, &reference).await?;
@@ -85,7 +78,7 @@ impl ReconcileAutolinkReferenceUseCase {
         // the autolink reference already exists
         if let Some(existing) = autolink_references
             .iter()
-            .find(|&v| v.key_prefix == autolink_reference_spec.key_prefix)
+            .find(|&v| v.key_prefix == spec.key_prefix)
         {
             return Ok(existing.id);
         }
@@ -93,7 +86,7 @@ impl ReconcileAutolinkReferenceUseCase {
         // the autolink reference does not exist
         let response = self
             .github_service
-            .add_autolink_reference(&autolink_reference.spec.full_name, &autolink_reference_spec)
+            .add_autolink_reference(&autolink_reference.spec.full_name, &spec)
             .await?;
         let reference = autolink_reference.object_ref(&());
         self.publish_created_event(recorder, &reference).await?;
