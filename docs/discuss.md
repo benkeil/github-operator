@@ -1,5 +1,9 @@
 # To Discuss
 
+## Decisions
+
+- Every api touched by this operator is the single source of truth and overrides manually changes
+
 ## Considerations
 
 ### For Developer
@@ -22,7 +26,7 @@
 - Primary Key is `key_prefix`
 - Resource ID is `id: Int`
 
-> Manage all Auto Links? ✅❌
+> Manage all Auto Links? ✅
 
 > Dedicated Resource or part of Repository? ✅❌
 
@@ -32,6 +36,8 @@
 
 - Supports `Upsert`
 - We can't manage everything, because the organization adds team permissions
+
+> Manage all Auto Links? ✅
 
 > Add a dedicated field `ownerTeam` to spec? ✅❌
 
@@ -44,6 +50,8 @@
 - Supports `Upsert`
 - Returns `204` if we update an existing collaborator
 - We can't manage everything, because the organization could add user permissions
+
+> Manage all Auto Links? ✅
 
 > Dedicated Resource or part of Repository? ✅❌
 
