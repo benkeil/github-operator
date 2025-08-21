@@ -28,7 +28,7 @@
 
 > Manage all Auto Links? ✅
 
-> Dedicated Resource or part of Repository? ✅❌
+> Dedicated Resource? ❌
 
 ### Team Permissions
 
@@ -41,7 +41,7 @@
 
 > Add a dedicated field `ownerTeam` to spec? ❌ -> the operator should run as admin and has always permissions to give your team permissions back
 
-> Dedicated Resource or part of Repository? ✅❌
+> Dedicated Resource? ❌
 
 ### Collaborators
 
@@ -53,7 +53,7 @@
 
 > Manage all Auto Links? ✅
 
-> Dedicated Resource or part of Repository? ✅❌
+> Dedicated Resource? ❌
 
 ### Automated Security Fixes
 
@@ -66,6 +66,6 @@
 - Supports `Create` and `Update`
 - Resource ID is `id: Int`
 
-> Dedicated Resource or part of Repository? ✅❌
+> Dedicated Resource? ❌
 
-> Manage all Rule Sets? ✅❌
+> Manage all Rule Sets? ✅
