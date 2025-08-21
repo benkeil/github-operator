@@ -39,7 +39,7 @@
 
 > Manage all Auto Links? ✅
 
-> Add a dedicated field `ownerTeam` to spec? ✅❌
+> Add a dedicated field `ownerTeam` to spec? ❌ -> the operator should run as admin and has always permissions to give your team permissions back
 
 > Dedicated Resource or part of Repository? ✅❌
 
